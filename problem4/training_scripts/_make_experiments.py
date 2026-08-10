@@ -127,19 +127,19 @@ EXPERIMENTS = {
         notes="Lights baseline. 3 tiles of the 0.30-0.90 band @640 -> 8.4px light. "
               "Cheapest of the sweep; the latency floor to beat.",
         dataset=dict(branch="lights", cache_key="lights_b30_90_t3"),
-        train=dict(model="yolo11n.pt", imgsz=640, batch=32, epochs=150),
+        train=dict(model="yolo11n.pt", imgsz=640, batch=32, epochs=70),
     ),
     "lights_t768": dict(
         notes="Middle of the size sweep @768 -> 10.1px light. The reference the "
               "head/yellow/band variants are compared against.",
         dataset=dict(branch="lights", cache_key="lights_b30_90_t3"),
-        train=dict(model="yolo11n.pt", imgsz=768, batch=24, epochs=150),
+        train=dict(model="yolo11n.pt", imgsz=768, batch=24, epochs=70),
     ),
     "lights_t896": dict(
         notes="Largest of the sweep @896 -> 11.8px light, near native. Tests "
               "whether accuracy is still climbing when latency runs out.",
         dataset=dict(branch="lights", cache_key="lights_b30_90_t3"),
-        train=dict(model="yolo11n.pt", imgsz=896, batch=16, epochs=150),
+        train=dict(model="yolo11n.pt", imgsz=896, batch=16, epochs=70),
     ),
 
     # ---------------- lights: one-variable variants @768 ----------------
@@ -150,7 +150,7 @@ EXPERIMENTS = {
               "grid beats a bigger input at equal cost.",
         dataset=dict(branch="lights", cache_key="lights_b30_90_t3"),
         train=dict(model="yolov8n-p2.yaml", load_from="yolov8n.pt",
-                   imgsz=768, batch=16, epochs=150),
+                   imgsz=768, batch=16, epochs=90),
     ),
     "lights_t768_yellow4": dict(
         notes="Yellow is 99 of 5442 light instances and a third of F1_lights. "
@@ -158,7 +158,7 @@ EXPERIMENTS = {
               "lights_t768, so the delta is purely the imbalance fix.",
         dataset=dict(branch="lights", cache_key="lights_b30_90_t3_y4",
                      yellow_oversample=4),
-        train=dict(model="yolo11n.pt", imgsz=768, batch=24, epochs=150),
+        train=dict(model="yolo11n.pt", imgsz=768, batch=24, epochs=70),
     ),
     "lights_t768_wideband": dict(
         notes="Band 0.20-0.95 instead of 0.30-0.90: 98.2%/98.7% box coverage "
@@ -166,7 +166,7 @@ EXPERIMENTS = {
               "at the same imgsz. Tests whether the recall ceiling is worth it.",
         dataset=dict(branch="lights", cache_key="lights_b20_95_t3",
                      band=[0.20, 0.95]),
-        train=dict(model="yolo11n.pt", imgsz=768, batch=24, epochs=150),
+        train=dict(model="yolo11n.pt", imgsz=768, batch=24, epochs=70),
     ),
 
     # ---------------- signs ----------------
@@ -174,14 +174,14 @@ EXPERIMENTS = {
         notes="Signs baseline. Median sign is 458px, so 640 is already generous; "
               "this exists to show that more resolution is not the answer.",
         dataset=dict(branch="signs", cache_key="signs"),
-        train=dict(model="yolo11n.pt", imgsz=640, batch=16, epochs=200),
+        train=dict(model="yolo11n.pt", imgsz=640, batch=16, epochs=110),
     ),
     "signs_640_aug": dict(
         notes="Same as signs_640 with much heavier augmentation. With ~70-140 "
               "instances per class the bottleneck is data, not capacity.",
         dataset=dict(branch="signs", cache_key="signs"),
-        train=dict(model="yolo11n.pt", imgsz=640, batch=16, epochs=300,
-                   mosaic=1.0, close_mosaic=20, mixup=0.15, copy_paste=0.3,
+        train=dict(model="yolo11n.pt", imgsz=640, batch=16, epochs=140,
+                   mosaic=1.0, close_mosaic=15, mixup=0.15, copy_paste=0.3,
                    scale=0.9, degrees=10.0, translate=0.2, shear=3.0,
                    perspective=0.0005, hsv_h=0.02, hsv_s=0.8, hsv_v=0.5,
                    erasing=0.2),
@@ -191,8 +191,8 @@ EXPERIMENTS = {
               "that signs do not need resolution; if this ties signs_640_aug, "
               "ship the 640 and spend the time on lights.",
         dataset=dict(branch="signs", cache_key="signs"),
-        train=dict(model="yolo11n.pt", imgsz=960, batch=8, epochs=300,
-                   mosaic=1.0, close_mosaic=20, mixup=0.15, copy_paste=0.3,
+        train=dict(model="yolo11n.pt", imgsz=960, batch=8, epochs=140,
+                   mosaic=1.0, close_mosaic=15, mixup=0.15, copy_paste=0.3,
                    scale=0.9, degrees=10.0, translate=0.2, shear=3.0,
                    perspective=0.0005, hsv_h=0.02, hsv_s=0.8, hsv_v=0.5,
                    erasing=0.2),

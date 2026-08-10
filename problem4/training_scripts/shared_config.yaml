@@ -44,10 +44,14 @@ train:
   workers: 12
   seed: 0
   deterministic: true
-  patience: 40
+  patience: 20               # stop early; pretrained nets plateau fast on 2k images
   optimizer: auto
   cos_lr: true
-  cache: false
+  # Decode each image ONCE into RAM instead of every epoch. This is the single
+  # biggest speed win here: the sign images are 12 MP and the lights branch
+  # re-reads 4665 JPEG tiles per epoch, so training was I/O bound, not GPU
+  # bound. Costs ~8 GB at imgsz 768 (4665 * 768^2 * 3), well inside memory_gb.
+  cache: true
   val: true
   plots: true
   verbose: true              # per-class P/R/mAP table at every validation
@@ -73,7 +77,7 @@ modal:
   # the card. Cores raised to 16 / workers to 12 to actually keep it fed.
   gpu: "A100"
   cpu_cores: 16
-  memory_gb: 64
+  memory_gb: 96              # headroom for the RAM image cache (see train.cache)
   timeout_seconds: 14400
   data_volume: tiny-data
   runs_volume: tiny-runs

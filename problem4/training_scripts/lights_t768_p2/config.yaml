@@ -11,4 +11,4 @@ train:
   load_from: yolov8n.pt
   imgsz: 768
   batch: 16
-  epochs: 150
+  epochs: 90

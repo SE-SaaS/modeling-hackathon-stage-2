@@ -10,9 +10,9 @@ train:
   model: yolo11n.pt
   imgsz: 960
   batch: 8
-  epochs: 300
+  epochs: 140
   mosaic: 1.0
-  close_mosaic: 20
+  close_mosaic: 15
   mixup: 0.15
   copy_paste: 0.3
   scale: 0.9

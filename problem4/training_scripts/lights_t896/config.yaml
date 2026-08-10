@@ -9,4 +9,4 @@ train:
   model: yolo11n.pt
   imgsz: 896
   batch: 16
-  epochs: 150
+  epochs: 70
