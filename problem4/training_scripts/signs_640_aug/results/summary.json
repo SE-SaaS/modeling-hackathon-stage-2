@@ -1,0 +1,21 @@
+{
+  "experiment": "signs_640_aug",
+  "best_weights": "/__modal/volumes/vo-bN9PdxuEkWDuCsBx0eofB8/signs_640_aug/train/weights/best.pt",
+  "val": {
+    "map50": 0.9508573204063021,
+    "map": 0.663065135227875,
+    "per_class_map50": {
+      "0": 0.995,
+      "1": 0.995,
+      "2": 0.9568016194331986,
+      "3": 0.99125,
+      "4": 0.8983333333333332,
+      "5": 0.9246733821733821,
+      "6": 0.9329119047619048,
+      "7": 0.9128883235485977
+    }
+  },
+  "onnx": "/__modal/volumes/vo-bN9PdxuEkWDuCsBx0eofB8/signs_640_aug/train/weights/best.onnx",
+  "onnx_mb": 10.61,
+  "onnx_int8": "/__modal/volumes/vo-bN9PdxuEkWDuCsBx0eofB8/signs_640_aug/train/weights/best_int8.onnx"
+}

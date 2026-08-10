@@ -1,0 +1,6 @@
+# CPU-only, pinned. No torch, no ultralytics: inference runs entirely through
+# ONNX Runtime, so the install is small and there is nothing that can silently
+# pull a CUDA build.
+numpy==1.26.4
+opencv-python-headless==4.10.0.84
+onnxruntime==1.19.2
