@@ -6,40 +6,58 @@
  Run everything from:  D:\My Projects\modeling-hackathon-stage-2
 ==========================================================================
 
----------- one-time account setup ----------
-modal setup
-modal profile list
-# modal config set workspace <your-workspace-name>     # only if you use multiple workspaces
+==========================================================================
+ STEP 0 — LOCAL, ONCE EVER (not per workspace)
+==========================================================================
+# Generates the 9 experiment folders on THIS disk. Touches nothing on Modal.
+# Only re-run it after editing _make_experiments.py. Existing config.yaml kept.
+python problem4/training_scripts/_make_experiments.py
+
+# The whole training_scripts/ tree is shipped into the container by
+# add_local_dir at `modal run` time, so every workspace automatically gets
+# whatever is on your disk right now. Nothing to sync manually.
 
 
-#---------- create the two volumes ----------
+==========================================================================
+ STEP 1 — PER WORKSPACE, ONCE EACH
+ Repeat this whole block for every workspace you intend to launch from.
+ Volumes are per-workspace: workspace B cannot see workspace A's data.
+==========================================================================
+
+# 1a. select the workspace FIRST. Everything below lands in whichever
+#     workspace is active, so getting this wrong creates volumes in the
+#     wrong account and the runs then fail to find /data.
+$env:MODAL_CONFIG_PATH = "$HOME\.modal_session1.toml"
+modal setup                 # only the first time this config file is used
+modal profile list          # confirm the active workspace before continuing
+
+# 1b. create the two volumes
 modal volume create tiny-data
 modal volume create tiny-runs
 
-
-#---------- upload the dataset ----------
-# ~5200 files / 2.4 GB, uploaded as a folder. Takes a few minutes.
-# The remote layout must end up as:  /data/dataset_release/{train,val}/{images,labels}
+# 1c. upload the dataset (~5200 files / 2.4 GB, a few minutes)
+#     The remote layout must end up as:
+#       /data/dataset_release/{train,val}/{images,labels}
 modal volume put tiny-data "C:\Users\mamou\Downloads\too-small-to-handle\dataset_release\dataset_release" /dataset_release
 
-# (sanity) confirm the layout before launching anything
-modal volume ls tiny-data /
+# 1d. sanity-check the layout BEFORE launching anything. If train/ is not
+#     directly under /dataset_release, the runs will fail on a missing path.
 modal volume ls tiny-data /dataset_release
 modal volume ls tiny-data /dataset_release/train
 
 
-#---------- regenerate experiment folders (only after editing _make_experiments.py) ----------
-# Rewrites every train.py from the template. Existing config.yaml files are kept.
-python problem4/training_scripts/_make_experiments.py
-
-
 ==========================================================================
- RUN THE EXPERIMENTS
- All 9 are independent — launch them in separate terminals, they run in
- parallel. Each builds its own dataset on first use and caches it on
+ STEP 2 — RUN THE EXPERIMENTS
+ All 9 are independent; launch them in separate terminals and they run in
+ parallel. Each builds its dataset on first use and caches it at
  /runs/_datasets/<cache_key>, so runs sharing a cache_key reuse the build.
- Launch ONE of each cache_key first if you want to avoid duplicate builds;
- otherwise just fire them all, the cost is a couple of minutes each.
+ Launch ONE of each cache_key first to avoid duplicate builds; otherwise
+ just fire them all, the cost is a couple of minutes each.
+
+ Splitting across workspaces: every terminal must set MODAL_CONFIG_PATH to
+ the workspace it is launching into, and that workspace must already have
+ completed STEP 1. Runs in different workspaces share nothing — including
+ the dataset cache, which each one rebuilds.
 ==========================================================================
 
 # --- LIGHTS: input size sweep (the score lives here) ---
@@ -60,7 +78,8 @@ python problem4/training_scripts/_make_experiments.py
 
 
 ==========================================================================
- FETCH RESULTS
+ STEP 3 — FETCH RESULTS
+ Fetch from the SAME workspace the run executed in (set MODAL_CONFIG_PATH).
 ==========================================================================
 
 # what an experiment produced
@@ -98,9 +117,18 @@ modal volume rm -r tiny-runs lights_t768
 
 
 ==========================================================================
- MULTIPLE WORKSPACES (to run more than the concurrency cap at once)
+ WORKSPACE SWITCHING — reference
+ One env var per terminal. Set it, confirm with `modal profile list`, then
+ run. A terminal keeps its workspace until the variable is changed.
 ==========================================================================
-# Each workspace needs its own volumes + dataset upload.
 cd "D:\My Projects\modeling-hackathon-stage-2"
-$env:MODAL_CONFIG_PATH = "$HOME\.modal_session1.toml"
+
+$env:MODAL_CONFIG_PATH = "$HOME\.modal_session1.toml"   # workspace 1
+$env:MODAL_CONFIG_PATH = "$HOME\.modal_session2.toml"   # workspace 2
+$env:MODAL_CONFIG_PATH = "$HOME\.modal_session3.toml"   # workspace 3
 modal profile list
+
+# Reminder of what is per-workspace vs not:
+#   per workspace : volumes, dataset upload, dataset cache, run outputs
+#   NOT per ws    : _make_experiments.py, config.yaml, shared_code.py
+#                   (local files, shipped into the container on every run)
