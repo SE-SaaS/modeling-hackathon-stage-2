@@ -1,0 +1,26 @@
+experiment:
+  name: signs_640_aug_y26
+  notes: yolo26n against signs_640_aug, everything else identical. Signs run one pass
+    per frame so the NMS saving is smaller here than on lights, but with 8 classes
+    and few instances the head change may matter on its own.
+dataset:
+  branch: signs
+  cache_key: signs
+train:
+  model: yolo26n.pt
+  imgsz: 640
+  batch: 16
+  epochs: 140
+  mosaic: 1.0
+  close_mosaic: 15
+  mixup: 0.15
+  copy_paste: 0.3
+  scale: 0.9
+  degrees: 10.0
+  translate: 0.2
+  shear: 3.0
+  perspective: 0.0005
+  hsv_h: 0.02
+  hsv_s: 0.8
+  hsv_v: 0.5
+  erasing: 0.2

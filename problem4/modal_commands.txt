@@ -48,7 +48,7 @@ modal volume put tiny-data "C:\Users\mamou\Downloads\too-small-to-handle\dataset
 
 ==========================================================================
  STEP 2 — RUN THE EXPERIMENTS
- All 9 are independent; launch them in separate terminals and they run in
+ All 11 are independent; launch them in separate terminals and they run in
  parallel. Each builds its dataset on first use and caches it at
  /runs/_datasets/<cache_key>, so runs sharing a cache_key reuse the build.
  Launch ONE of each cache_key first to avoid duplicate builds; otherwise
@@ -75,10 +75,14 @@ modal run problem4/training_scripts/lights_t768_p2/train.py         # 4 | stride
 modal run problem4/training_scripts/lights_t768_yellow4/train.py    # 5 | yellow x4      [dataset]
 modal run problem4/training_scripts/lights_t768_wideband/train.py   # 6 | band 0.20-0.95 [dataset]
 
+# --- LIGHTS: different pretrained family (yolo26n = NMS-free, same size) ---
+modal run problem4/training_scripts/lights_t768_y26/train.py        # 7 | yolo26n vs yolo11n
+
 # --- SIGNS ---
-modal run problem4/training_scripts/signs_640/train.py              # 7 | baseline       [dataset]
-modal run problem4/training_scripts/signs_640_aug/train.py          # 8 | heavy aug
-modal run problem4/training_scripts/signs_960/train.py              # 9 | heavy aug @960
+modal run problem4/training_scripts/signs_640/train.py              # 8 | baseline       [dataset]
+modal run problem4/training_scripts/signs_640_aug/train.py          # 9 | heavy aug
+modal run problem4/training_scripts/signs_960/train.py              # 10| heavy aug @960
+modal run problem4/training_scripts/signs_640_aug_y26/train.py      # 11| yolo26n vs yolo11n
 
 
 ==========================================================================
@@ -102,7 +106,7 @@ modal run problem4/training_scripts/lights_t768/train.py --fetch-only    # downl
 modal run problem4/training_scripts/lights_t768/train.py --force         # retrain from scratch
 modal run problem4/training_scripts/lights_t768/train.py --weights-only  # skip plots/CSVs
 
-# --- all 9 at once: status table + pull anything missing ---
+# --- all 11 at once: status table + pull anything missing ---
 python problem4/training_scripts/_fetch_all.py
 python problem4/training_scripts/_fetch_all.py --status         # report only
 python problem4/training_scripts/_fetch_all.py --weights-only

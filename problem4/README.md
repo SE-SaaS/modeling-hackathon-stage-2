@@ -69,6 +69,17 @@ binding constraint here — a nano has plenty for 3 and 8 classes with a few
 thousand instances. Input resolution is the constraint, so that is where the
 compute goes.
 
+**Pretraining.** COCO includes `traffic light` (class 9) and `stop sign`
+(class 11) among its 80 classes, so the backbone arrives already knowing what a
+traffic light looks like — from far more instances than our 5442. The rules
+permit COCO/ImageNet backbones and ban any outside traffic-light or sign
+dataset, so this is the strongest pretraining legally available.
+
+**`yolo26n` is tested as an alternative** (`lights_t768_y26`,
+`signs_640_aug_y26`): same COCO pretraining, near-identical size (2.57M vs
+2.62M params), but end-to-end / NMS-free. The lights branch runs 3 tiles per
+frame and so pays NMS three times, making this a direct latency lever.
+
 **What we are not using, and why:** no RT-DETR (transformer attention is slow on
 CPU), no NanoDet/PicoDet (weaker tooling, no ONNX/export path this mature), no
 two-stage detector, no separate colour-classifier CNN yet — that stays in
@@ -85,7 +96,7 @@ reserve for if yellow F1 comes back broken.
       (dataset construction, training, export, and the competition metric
       reimplemented so experiments are ranked on the real objective).
 - [x] **3. Define the experiment grid** — `training_scripts/_make_experiments.py`
-      generates 9 experiment folders, each a `config.yaml` + a thin `train.py`.
+      generates 11 experiment folders, each a `config.yaml` + a thin `train.py`.
 - [x] **4. Verify the tiling geometry** — round-trip test confirmed box centres
       reconstruct to 0.00 px on train; tile coverage has no gaps at any of the 7
       resolutions in the dataset.
@@ -93,8 +104,8 @@ reserve for if yellow F1 comes back broken.
       downloads its own results, including after a crash. Re-running detects
       local + remote state and resumes instead of restarting. State machine
       tested against a fake volume across all 5 paths.
-- [ ] **6. Upload data to Modal + launch the 9 runs** — see
-      [modal_commands.txt](modal_commands.txt). All 9 are independent and run in
+- [ ] **6. Upload data to Modal + launch the 11 runs** — see
+      [modal_commands.txt](modal_commands.txt). All 11 are independent and run in
       parallel. `python training_scripts/_fetch_all.py` gives a status table.
 - [ ] **7. Pick the winners** — one lights config, one signs config, judged on
       `competition_score()`, not on Ultralytics' mAP (which weights the two
@@ -121,9 +132,11 @@ reserve for if yellow F1 comes back broken.
 | 4 | `lights_t768_p2` | `yolov8n-p2.yaml` ← `yolov8n.pt` | 768 | stride-4 head | 10.1 |
 | 5 | `lights_t768_yellow4` | `yolo11n.pt` | 768 | yellow tiles ×4 | 10.1 |
 | 6 | `lights_t768_wideband` | `yolo11n.pt` | 768 | band 0.20–0.95 | 8.1 |
-| 7 | `signs_640` | `yolo11n.pt` | 640 | baseline | — |
-| 8 | `signs_640_aug` | `yolo11n.pt` | 640 | heavy augmentation | — |
-| 9 | `signs_960` | `yolo11n.pt` | 960 | heavy aug + resolution | — |
+| 7 | `lights_t768_y26` | `yolo26n.pt` | 768 | **NMS-free family** | 10.1 |
+| 8 | `signs_640` | `yolo11n.pt` | 640 | baseline | — |
+| 9 | `signs_640_aug` | `yolo11n.pt` | 640 | heavy augmentation | — |
+| 10 | `signs_960` | `yolo11n.pt` | 960 | heavy aug + resolution | — |
+| 11 | `signs_640_aug_y26` | `yolo26n.pt` | 640 | **NMS-free family** | — |
 
 Experiments 4–6 each change exactly one thing against `lights_t768`, so each
 result is attributable.
@@ -142,7 +155,7 @@ problem4/
   training_scripts/
     shared_code.py             the engine
     shared_config.yaml         defaults, merged under every experiment
-    _make_experiments.py       generates the 9 folders
+    _make_experiments.py       generates the 11 folders
     <experiment>/
       config.yaml              only what this experiment changes
       train.py                 thin entry point (local + Modal)

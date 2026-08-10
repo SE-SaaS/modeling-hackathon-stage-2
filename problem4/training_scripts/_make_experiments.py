@@ -169,6 +169,20 @@ EXPERIMENTS = {
         train=dict(model="yolo11n.pt", imgsz=768, batch=24, epochs=70),
     ),
 
+    # ---------------- lights: different pretrained family ----------------
+    # yolo26n is the same size as yolo11n (2.57M vs 2.62M params) and carries the
+    # same COCO pretraining, but is END-TO-END / NMS-FREE. We run 3 tiles per
+    # frame, so NMS is paid 3x per frame on CPU; removing it is a direct latency
+    # win on the half of the score that costs the most. Identical geometry and
+    # schedule to lights_t768, so this isolates the architecture.
+    "lights_t768_y26": dict(
+        notes="yolo26n instead of yolo11n at the reference geometry. Same COCO "
+              "pretraining, same param count, but NMS-free — worth testing "
+              "because the lights branch pays NMS three times per frame.",
+        dataset=dict(branch="lights", cache_key="lights_b30_90_t3"),
+        train=dict(model="yolo26n.pt", imgsz=768, batch=24, epochs=70),
+    ),
+
     # ---------------- signs ----------------
     "signs_640": dict(
         notes="Signs baseline. Median sign is 458px, so 640 is already generous; "
@@ -192,6 +206,18 @@ EXPERIMENTS = {
               "ship the 640 and spend the time on lights.",
         dataset=dict(branch="signs", cache_key="signs"),
         train=dict(model="yolo11n.pt", imgsz=960, batch=8, epochs=140,
+                   mosaic=1.0, close_mosaic=15, mixup=0.15, copy_paste=0.3,
+                   scale=0.9, degrees=10.0, translate=0.2, shear=3.0,
+                   perspective=0.0005, hsv_h=0.02, hsv_s=0.8, hsv_v=0.5,
+                   erasing=0.2),
+    ),
+    "signs_640_aug_y26": dict(
+        notes="yolo26n against signs_640_aug, everything else identical. Signs "
+              "run one pass per frame so the NMS saving is smaller here than on "
+              "lights, but with 8 classes and few instances the head change may "
+              "matter on its own.",
+        dataset=dict(branch="signs", cache_key="signs"),
+        train=dict(model="yolo26n.pt", imgsz=640, batch=16, epochs=140,
                    mosaic=1.0, close_mosaic=15, mixup=0.15, copy_paste=0.3,
                    scale=0.9, degrees=10.0, translate=0.2, shear=3.0,
                    perspective=0.0005, hsv_h=0.02, hsv_s=0.8, hsv_v=0.5,
