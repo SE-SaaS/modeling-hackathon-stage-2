@@ -374,6 +374,56 @@ def _oversample_class(split_dir: Path, cls_id: int, repeats: int) -> int:
 # =============================================================================
 # Section 3 — training + export
 # =============================================================================
+def _attach_progress(model, exp_name: str, persist_fn=None):
+    """Print one compact line per epoch with a whole-run ETA.
+
+    Ultralytics' own tqdm bar gives a per-epoch ETA only. With several runs going
+    at once in separate terminals the useful number is when THIS run finishes, so
+    we track mean epoch time and extrapolate. Everything is flushed explicitly:
+    Modal buffers stdout, and an unflushed progress line is worse than none.
+    """
+    import time
+    state = {"t0": time.time(), "last": time.time(), "times": []}
+
+    def on_epoch_end(trainer):
+        now = time.time()
+        state["times"].append(now - state["last"])
+        state["last"] = now
+        ep = int(getattr(trainer, "epoch", 0)) + 1
+        total = int(getattr(trainer, "epochs", 0)) or 1
+        recent = state["times"][-10:]                 # recent mean: warmup is slower
+        eta_s = (total - ep) * (sum(recent) / len(recent))
+        elapsed = now - state["t0"]
+
+        # Keys look like 'metrics/mAP50(B)' — match the full suffix, not a
+        # fragment: 'mAP50' is also a prefix of 'mAP50-95' and would collide.
+        m = getattr(trainer, "metrics", {}) or {}
+        def g(*keys):
+            for k in keys:
+                for mk, mv in m.items():
+                    if mk.endswith(k):
+                        return mv
+            return float("nan")
+
+        print(f"[{exp_name}] epoch {ep}/{total} "
+              f"| mAP50 {g('mAP50(B)'):.4f} mAP50-95 {g('mAP50-95(B)'):.4f} "
+              f"| P {g('precision(B)'):.3f} R {g('recall(B)'):.3f} "
+              f"| {state['times'][-1]:.1f}s/ep "
+              f"| elapsed {elapsed/60:.1f}m eta {eta_s/60:.1f}m",
+              flush=True)
+
+        # Commit every 20 epochs so a killed container still leaves a resumable
+        # last.pt on the volume rather than losing the whole run.
+        if persist_fn and ep % 20 == 0:
+            try:
+                persist_fn()
+            except Exception:
+                pass
+
+    model.add_callback("on_fit_epoch_end", on_epoch_end)
+    return model
+
+
 def run_experiment(cfg: dict, exp_dir, out_dir=None, persist_fn=None,
                    fresh: bool = False) -> dict:
     """Build dataset -> train -> validate -> export ONNX (+ optional INT8).
@@ -404,11 +454,13 @@ def run_experiment(cfg: dict, exp_dir, out_dir=None, persist_fn=None,
         print(f"[train] fresh run requested, clearing {out_dir / 'train'}")
         shutil.rmtree(out_dir / "train", ignore_errors=True)
     if last_pt.exists() and not fresh:
-        print(f"[train] resuming from {last_pt}")
+        print(f"[train] resuming from {last_pt}", flush=True)
         model = YOLO(str(last_pt))
+        _attach_progress(model, name, persist_fn)
         results = model.train(resume=True)
     else:
         model = YOLO(t.pop("model"))
+        _attach_progress(model, name, persist_fn)
         # A .yaml architecture (e.g. the P2 variant) starts from random weights.
         # load_from warm-starts every layer whose shape matches a released
         # checkpoint; the layers unique to the variant stay random.

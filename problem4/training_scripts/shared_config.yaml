@@ -50,6 +50,7 @@ train:
   cache: false
   val: true
   plots: true
+  verbose: true              # per-class P/R/mAP table at every validation
   # Augmentation. Defaults are Ultralytics' own; experiments override.
   mosaic: 1.0
   close_mosaic: 15
