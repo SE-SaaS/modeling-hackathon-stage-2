@@ -1,244 +1,271 @@
 # Problem 4 — Too Small to Handle
 
-Find 12-pixel traffic lights and 8 kinds of road sign in one image, on CPU,
-inside a hard per-frame deadline.
-
-`Score = 0.5 * F1_lights + 0.5 * mAP50_signs`
-
-**Branch:** `problem4-tiny-detector`
+**Branch:** `problem4-tiny-detector` · **Kaggle score: 0.80439**
 
 ---
 
-## The three facts the whole design rests on
+## 1. The task
 
-Measured in [data_code/01_dataset_analysis.txt](data_code/01_dataset_analysis.txt):
+One dashcam-style image goes in. Find two very different things in it:
 
-1. **Lights and signs never share an image.** 0 of 2595. Dashcam frames
-   (2704×1520, ar 1.78) hold every light; portrait phone photos (ar ≤ 1.33) hold
-   every sign. An aspect-ratio check routes each frame to one branch — so only
-   one model runs per frame.
-2. **A 12px light does not survive a resize.** Median light is 12.0 px wide.
-   Full-frame at 640 → 2.8 px. At 960 → 4.3 px. Both unusable.
-3. **Signs are not a resolution problem, they're a data problem.** Median sign
-   is 458 px, but each class has only 70–140 instances.
-
-## The approach
-
-Two models, routed by aspect ratio.
-
-**Lights** — crop the band `[0.30, 0.90]` of the frame height (96% of light
-boxes, drops sky and road), cut it into 3 square tiles across the width, detect
-at a normal square `imgsz`. A 2704×1520 frame → 2704×912 band → 3 tiles of 912.
-At `imgsz=768` a 12px light is **10.1 px** — visible to a stride-8 head. Cost is
-3×768² , the same as one wide 2304×768 pass, but every tensor is square so
-Ultralytics trains it normally (it only accepts an int `imgsz` for training).
-
-**Signs** — plain detector at 640 on the full image. The effort goes into
-augmentation, not resolution.
-
----
-
-## The models
-
-Everything is **Ultralytics YOLO11 nano**, COCO-pretrained. Two separate
-instances of it — one per branch — never a shared backbone.
-
-| Property | Lights model | Signs model |
+| | Traffic lights | Road signs |
 | --- | --- | --- |
-| Checkpoint | `yolo11n.pt` | `yolo11n.pt` |
-| Params | ~2.6 M | ~2.6 M |
-| Classes | 3 (red/yellow/green) | 8 (sign types) |
-| Input | 3 tiles @ 640–896 | 1 full frame @ 640 |
-| FP32 ONNX | ~10 MB | ~10 MB |
-| INT8 ONNX | ~3 MB | ~3 MB |
+| Classes | 3 — red, yellow, green | 8 — bus stop, crossroad, no entry, … |
+| Typical size | **12 pixels wide** | **458 pixels wide** |
+| Training examples | 5,442 | 685 (only 70–140 per class) |
 
-Combined on disk: **~6 MB INT8 / ~20 MB FP32**, comfortably inside any
-plausible size budget. Runtime is **ONNX Runtime on CPU**, static shapes.
+Score is an equal split of the two:
 
-One experiment (`lights_t768_p2`) instead uses **`yolov8n-p2.yaml`** — a YOLOv8
-nano with an extra stride-4 (P2) detection head. Ultralytics ships no
-`yolo11-p2.yaml` (verified against the installed 8.4.11 package: only
-`yolov8-p2.yaml` and `yolo26-p2.yaml` exist), so the P2 test has to be a v8. It
-is warm-started from `yolov8n.pt`, meaning the backbone transfers but the P2
-layers start random — expect it to need more epochs to be judged fairly.
+```text
+Score = 0.5 * F1_lights  +  0.5 * mAP50_signs
+```
 
-**Why nano and nothing larger.** The deadline is pass/fail with no partial
-credit, and the lights branch spends its budget on three forward passes per
-frame rather than one. A `yolo11s` at 3×768² would not fit. Capacity is not the
-binding constraint here — a nano has plenty for 3 and 8 classes with a few
-thousand instances. Input resolution is the constraint, so that is where the
-compute goes.
+Both halves are "higher is better", max 1.0.
 
-**Pretraining.** COCO includes `traffic light` (class 9) and `stop sign`
-(class 11) among its 80 classes, so the backbone arrives already knowing what a
-traffic light looks like — from far more instances than our 5442. The rules
-permit COCO/ImageNet backbones and ban any outside traffic-light or sign
-dataset, so this is the strongest pretraining legally available.
-
-**`yolo26n` is tested as an alternative** (`lights_t768_y26`,
-`signs_640_aug_y26`): same COCO pretraining, near-identical size (2.57M vs
-2.62M params), but end-to-end / NMS-free. The lights branch runs 3 tiles per
-frame and so pays NMS three times, making this a direct latency lever.
-
-**What we are not using, and why:** no RT-DETR (transformer attention is slow on
-CPU), no NanoDet/PicoDet (weaker tooling, no ONNX/export path this mature), no
-two-stage detector, no separate colour-classifier CNN yet — that stays in
-reserve for if yellow F1 comes back broken.
+Two extra rules that shape everything:
+- **CPU only at test time**, hard **150 ms per frame (p95)**. Miss it and you are
+  not ranked at all — no partial credit.
+- You submit **code, not predictions**. They run your `predict.py` themselves on
+  images you never see.
 
 ---
 
-## Steps, in order
+## 2. Why this is hard
 
-- [x] **1. Analyse the data** — `python problem4/data_code/01_analyze_dataset.py`
-      → writes `01_dataset_analysis.txt`. Resolutions, per-class box sizes in
-      pixels, spatial priors, post-resize light visibility, band/tile tradeoffs.
-- [x] **2. Build the training engine** — `training_scripts/shared_code.py`
-      (dataset construction, training, export, and the competition metric
-      reimplemented so experiments are ranked on the real objective).
-- [x] **3. Define the experiment grid** — `training_scripts/_make_experiments.py`
-      generates 13 experiment folders, each a `config.yaml` + a thin `train.py`.
-- [x] **4. Verify the tiling geometry** — round-trip test confirmed box centres
-      reconstruct to 0.00 px on train; tile coverage has no gaps at any of the 7
-      resolutions in the dataset.
-- [x] **5. Make runs self-syncing** — `modal run .../train.py` trains *and*
-      downloads its own results, including after a crash. Re-running detects
-      local + remote state and resumes instead of restarting. State machine
-      tested against a fake volume across all 5 paths.
-- [x] **6. Upload data to Modal + launch the 13 runs** (9/13 complete) — see
-      [modal_commands.txt](modal_commands.txt). All 13 are independent and run in
-      parallel. `python training_scripts/_fetch_all.py` gives a status table.
-- [x] **7. Pick the winners** — `lights_t768_yellow4` + `signs_640`, chosen on
-      `evaluate.py` (real objective), not on tile mAP50. Kaggle: 0.80439.
-- [ ] **8. Write `predict.py`** — router → crop/tile → ONNX Runtime → merge
-      tiles → NMS → boxes in original-image pixels. Must import
-      `tile_geometry()` from `shared_code` so inference and training geometry
-      cannot drift.
-- [ ] **9. Measure p95 latency on CPU** — the deadline is pass/fail, no partial
-      credit. If it clears without INT8, ship FP32.
-- [ ] **10. INT8 quantize, re-validate** — keep it only if light F1 holds.
-- [ ] **11. Package the zip** — `predict.py`, `requirements.txt`, weights,
-      `WRITEUP.md`, named `<team-slug>__<SECRET_CODE>.zip`.
+A traffic light is ~12 px wide in a 2704-px-wide photo. The standard move is to
+shrink the image to 640 px before detection. Do that and the light becomes
+**2.8 px** — smaller than one grid cell of the detector, and its colour is gone.
+The model cannot find what the resize destroyed.
+
+Meanwhile the signs are huge and easy, but there are barely any examples of each.
+
+So it is really two different problems sharing one folder.
 
 ---
 
-## Results so far
+## 3. What we found in the data
 
-**Kaggle practice leaderboard: 0.80439** — `lights_t768_yellow4` + `signs_640`
-at conf 0.40. (4 submissions left.)
+Run `python data_code/01_analyze_dataset.py` → writes
+[`01_dataset_analysis.txt`](data_code/01_dataset_analysis.txt).
 
-Two numbers per run. `mAP50` is Ultralytics on **tiles** at IoU 0.5 — a proxy.
-`F1_lights` is the **real objective**: full frames, centre-distance matching,
-from `evaluate.py`. They disagree, and the real one is what decides.
+Three facts, all measured, that decided the whole design:
 
-| Lights run | mAP50 | red | yellow | green | real F1 @0.40 |
+1. **Lights and signs never appear in the same image.** Not once in 2,595
+   images. Wide landscape photos (2704×1520) contain *only* lights. Tall
+   portrait phone photos contain *only* signs.
+2. **A light really is 12 px** (median). At 640 px input → 2.8 px. Confirmed
+   unusable.
+3. **Signs are already big enough.** Median 458 px. Their problem is having only
+   ~100 examples per class, not resolution.
+
+---
+
+## 4. The solution
+
+Because lights and signs never share an image, we check the image shape and send
+it to **one of two separate models** — never both. This halves the work per
+frame.
+
+```text
+                    ┌─ wide image (ratio > 1.6) ──→  LIGHTS model
+image ──→ shape? ──┤
+                    └─ tall image               ──→  SIGNS model
+```
+
+### The lights model — how we keep the 12 px light
+
+Instead of shrinking the whole photo, we **cut out a horizontal strip and slice
+it into 3 squares**:
+
+```text
+2704 x 1520 photo
+   │  keep only the middle strip (30%-90% of the height) — the sky and road
+   │  contain no lights, so throwing them away costs nothing
+   ▼
+2704 x 912 strip
+   │  slice across into 3 overlapping squares
+   ▼
+[912x912] [912x912] [912x912]   →  detector runs on each at 768 px
+```
+
+A 12 px light inside a 912 px tile, viewed at 768 px, is **10.1 px** — big
+enough for the detector to see. Same total pixels as one big wide image, but
+every piece is square, which is what the training library requires.
+
+The 3 tiles' results are merged back into the original photo's coordinates.
+
+### The signs model
+
+No tricks needed. One pass over the whole image at 640 px.
+
+---
+
+## 5. The two models
+
+Both are the **same off-the-shelf network**: `yolo11n` ("YOLO11 nano"), the
+smallest in its family, pre-trained on COCO.
+
+| | Lights model | Signs model |
+| --- | --- | --- |
+| Network | `yolo11n` | `yolo11n` |
+| Size | 2.6M parameters (~5.5 MB) | 2.6M parameters (~5.5 MB) |
+| Detects | 3 classes | 8 classes |
+| Sees | 3 tiles @ 768 px | 1 whole image @ 640 px |
+| Score | **F1 0.793** | **mAP50 0.973** |
+
+**Why two models and not one?** One network can only take one input size. The
+lights need the crop-and-tile trick; the signs do not. Sharing a backbone would
+force both to use the same input and destroy the lights. Two small models are
+also faster than one big one, and can be tuned and debugged separately.
+
+**Why the *smallest* network?** The 150 ms deadline is pass/fail. The lights
+branch already spends its budget running 3 tiles instead of 1. Capacity was
+never the problem — resolution was — so the compute goes there instead.
+
+**Why COCO pre-training?** COCO happens to include `traffic light` and
+`stop sign` among its 80 classes, so the network already knows what a traffic
+light looks like before we start. Competition rules allow COCO/ImageNet and ban
+any traffic-specific dataset, so this is the best legal starting point.
+
+---
+
+## 6. The experiments — what each one tested
+
+13 runs, each changing **one thing** so the result is attributable. All trained
+on Modal (cloud A100 GPUs), in parallel.
+
+### Lights runs
+
+| # | Run | The one thing it changed | mAP50 | **Real F1** | Verdict |
 | --- | --- | --- | --- | --- | --- |
-| **`lights_t768_yellow4`** | 0.656 | 0.684 | 0.632 | 0.652 | **0.793** ← shipped |
-| `lights_t768_yellow8` | 0.657 | 0.657 | 0.655 | 0.658 | 0.671 |
-| `lights_t896` | 0.648 | 0.699 | 0.545 | 0.700 | — |
-| `lights_t768_p2` | 0.640 | 0.649 | 0.547 | 0.724 | — |
-| `lights_t768` | 0.639 | 0.662 | 0.590 | 0.664 | — |
-| `lights_t768_wideband` | 0.632 | 0.647 | 0.597 | 0.652 | — |
-| `lights_t640` | 0.568 | 0.620 | 0.447 | 0.637 | — |
+| 1 | `lights_t640` | input 640 px (light = 8.4 px) | 0.568 | — | too small |
+| 2 | `lights_t768` | input 768 px (light = 10.1 px) | 0.639 | — | the reference |
+| 3 | `lights_t896` | input 896 px (light = 11.8 px) | 0.648 | — | barely helps |
+| 4 | `lights_t768_p2` | detector head that looks at finer detail | 0.640 | — | costs more, no gain |
+| **5** | **`lights_t768_yellow4`** | **yellow examples repeated ×4** | 0.656 | **0.793** | ✅ **SHIPPED** |
+| 6 | `lights_t768_wideband` | taller strip (more coverage, smaller lights) | 0.632 | — | worse trade |
+| 7 | `lights_t768_y26` | newer network, no NMS step | not run | — | latency idea |
+| 12 | `lights_t896_yellow4` | ×4 yellow **and** 896 px | 0.677 | 0.753 | best mAP50, worse in reality |
+| 13 | `lights_t768_yellow8` | yellow repeated ×8 instead of ×4 | 0.657 | 0.671 | overfits |
 
-| Signs run | mAP50 | mAP50-95 |
-| --- | --- | --- |
-| **`signs_640`** | **0.9730** | 0.6609 ← shipped |
-| `signs_960` | 0.9574 | 0.6487 |
+### Signs runs
 
-### What we learned
+| # | Run | The one thing it changed | mAP50 | Verdict |
+| --- | --- | --- | --- | --- |
+| **8** | **`signs_640`** | plain baseline | **0.973** | ✅ **SHIPPED** |
+| 9 | `signs_640_aug` | heavy image augmentation | running | — |
+| 10 | `signs_960` | bigger input, 960 px | 0.957 | worse **and** slower |
+| 11 | `signs_640_aug_y26` | newer network | not run | — |
 
-1. **Resolution is the dominant lever for lights, and it saturates at 768.**
-   640→768 was +0.071 mAP50 (almost all yellow, +0.143); 768→896 only +0.010.
-   Confirms the analysis: at 640 a light is 8.4 px and its colour is gone.
-2. **Confidence threshold was worth +0.12 total score** and had never been set.
-   F1_lights runs 0.554 at conf 0.05 → 0.793 at 0.40, collapsing by 0.50. The
-   metric counts every submitted box, so low thresholds just add false alarms.
-3. **The proxy metric misleads.** `yellow8` beat `yellow4` on tile mAP50
-   (0.657 vs 0.656) but lost badly on the real metric (0.671 vs 0.793):
-   duplicating 77 yellow images 8× memorises them. Ranking on `summary.json`
-   alone would have shipped the worse model.
-4. **Signs do not need resolution.** 960 scored *below* 640 (0.957 vs 0.973) at
-   2.25× the compute. Predicted by the size analysis; now measured.
-5. **Wideband loses.** Band 0.20–0.95 buys +2% box coverage and costs 2 px of
-   light size: 0.632 vs 0.639. Not worth it.
-6. **The P2 head is not worth its cost.** Best localisation (mAP50-95 0.287)
-   and best green, but lower mAP50, +20% model size, more compute — and the
-   metric matches lights by centre distance, where finer localisation barely
-   pays. It also early-stopped at 63/90 epochs still oscillating.
-7. **Latency currently FAILS**: p95 215 ms via PyTorch against a 150 ms
-   deadline. The ONNX Runtime path is not optional.
-8. **The submission format in the rules is wrong.** Empty predictions are
-   documented as the word `none`, but the grader rejects that ("not a multiple
-   of 6") *and* rejects blanks ("contains null values"). A filler class-0 box at
-   conf 0.0001 satisfies both at no measurable cost.
+> **Two different columns, and they disagree.** `mAP50` is the training
+> library's own score, measured on *tiles*. **Real F1** is the actual
+> competition metric, measured on *whole images* — the competition matches
+> lights by how close the centre is, not by box overlap, which is far more
+> forgiving on a 12 px box. Run 12 has the best `mAP50` and run 13 the most
+> balanced, yet **both lose to run 5 on the metric that counts**. Picking on
+> `mAP50` alone would have shipped a worse model.
 
 ---
 
-## The experiment grid
+## 7. What we learned
 
-| # | Experiment | Model | imgsz | What it varies | Light px |
-|---|---|---|---|---|---|
-| 1 | `lights_t640` | `yolo11n.pt` | 640 | size sweep, cheapest | 8.4 |
-| 2 | `lights_t768` | `yolo11n.pt` | 768 | **the reference** | 10.1 |
-| 3 | `lights_t896` | `yolo11n.pt` | 896 | size sweep, dearest | 11.8 |
-| 4 | `lights_t768_p2` | `yolov8n-p2.yaml` ← `yolov8n.pt` | 768 | stride-4 head | 10.1 |
-| 5 | `lights_t768_yellow4` | `yolo11n.pt` | 768 | yellow tiles ×4 | 10.1 |
-| 6 | `lights_t768_wideband` | `yolo11n.pt` | 768 | band 0.20–0.95 | 8.1 |
-| 7 | `lights_t768_y26` | `yolo26n.pt` | 768 | **NMS-free family** | 10.1 |
-| 8 | `signs_640` | `yolo11n.pt` | 640 | baseline | — |
-| 9 | `signs_640_aug` | `yolo11n.pt` | 640 | heavy augmentation | — |
-| 10 | `signs_960` | `yolo11n.pt` | 960 | heavy aug + resolution | — |
-| 11 | `signs_640_aug_y26` | `yolo26n.pt` | 640 | **NMS-free family** | — |
-
-Experiments 4–6 each change exactly one thing against `lights_t768`, so each
-result is attributable.
+1. **Resolution is the whole game for lights — and it stops paying at 768 px.**
+   640→768 gained a lot; 768→896 gained almost nothing but costs 35% more time.
+2. **The confidence threshold was worth +0.12 score and had never been set.**
+   Every box you submit counts as a guess, so submitting low-confidence boxes
+   floods the score with false alarms. Best value: **0.40**.
+3. **Yellow is the bottleneck.** Only 99 training examples but worth a third of
+   the lights score. Repeating those images ×4 helped; ×8 overfit and hurt.
+4. **Signs did not need anything clever.** The plain baseline won; a bigger
+   input made it *worse* (0.957 vs 0.973).
+5. **Test on the real metric, always.** Three separate times the training
+   library's score pointed at the wrong model.
+6. **The rules' submission format is wrong.** Images with no detections are
+   documented as the word `none`, but the grader rejects that *and* rejects
+   blanks. A dummy class-0 box at confidence 0.0001 satisfies both harmlessly.
 
 ---
 
-## Layout
+## 8. Status
 
+- [x] Analyse the data
+- [x] Build the training pipeline (Modal, self-syncing, resumable)
+- [x] Run 13 experiments (10 finished)
+- [x] Build the real-metric evaluator
+- [x] Pick the models — `lights_t768_yellow4` + `signs_640`, conf 0.40
+- [x] Kaggle practice submission — **0.80439**
+- [ ] **`predict.py` on ONNX Runtime** ← the blocker
+- [ ] Measure p95 latency, confirm under 150 ms
+- [ ] INT8 quantise if needed, re-check accuracy
+- [ ] Package the Drive zip
+
+> ### ⚠ The open problem
+>
+> Accuracy is fine; **speed is not**. Current p95 is **209 ms against a 150 ms
+> limit** — measured through PyTorch, which is not the deployment path. The fix
+> is ONNX Runtime (typically 3× faster on CPU) and, if that is not enough, INT8
+> quantisation or dropping to 2 tiles. Until this passes, the accuracy does not
+> matter: over the limit means not ranked.
+
+---
+
+## 9. How to run it
+
+```bash
+# analyse the dataset
+python problem4/data_code/01_analyze_dataset.py
+
+# train one experiment on Modal (also downloads its own results when done,
+# resumes if it crashed, does nothing if already complete)
+modal run problem4/training_scripts/lights_t768_yellow4/train.py
+
+# status of every experiment
+python problem4/training_scripts/_fetch_all.py
+
+# score a model pair on the REAL metric + measure CPU latency
+python problem4/training_scripts/evaluate.py \
+    --lights lights_t768_yellow4 --signs signs_640 --sweep-conf
+
+# build submission.csv
+python problem4/training_scripts/make_submission.py \
+    --lights lights_t768_yellow4 --signs signs_640 --conf 0.40
 ```
+
+Full command list, including one-time Modal setup:
+[`modal_commands.txt`](modal_commands.txt).
+
+### Files
+
+```text
 problem4/
-  README.md                    this file
-  modal_commands.txt           every command, in order
+  README.md                     this file
+  modal_commands.txt            every command, in order
+  submission.csv                current Kaggle submission
   data_code/
-    01_analyze_dataset.py      the analysis
-    01_dataset_analysis.txt    its output
+    01_analyze_dataset.py       dataset analysis
+    01_dataset_analysis.txt     its output — the evidence for every decision
   training_scripts/
-    shared_code.py             the engine
-    shared_config.yaml         defaults, merged under every experiment
-    _make_experiments.py       generates the 13 folders
+    shared_code.py              engine: tiling, training, export, real metric
+    shared_config.yaml          settings shared by all experiments
+    _make_experiments.py        generates the 13 experiment folders
+    _fetch_all.py               status table + download results
+    evaluate.py                 score on the real metric + time it on CPU
+    make_submission.py          write submission.csv
     <experiment>/
-      config.yaml              only what this experiment changes
-      train.py                 thin entry point (local + Modal)
+      config.yaml               only what this experiment changes
+      train.py                  entry point (runs locally or on Modal)
+      results/                  downloaded outputs (weights are gitignored)
 ```
 
 ---
 
-## Decisions made, and why
+## 10. Known risks
 
-**Two models, not one with two heads.** A shared backbone runs on one input
-tensor, which forbids the crop — and the crop is the whole point. Separate
-models also train and debug independently.
-
-**Tiles, not a wide tensor.** Ultralytics accepts only an int `imgsz` for
-training. Tiling gets the same effective resolution at the same pixel cost with
-square tensors throughout.
-
-**No distillation, no pruning.** Pruning yields sparsity ONNX Runtime CPU won't
-execute faster — training a smaller width is strictly better. Distillation needs
-the teacher trained first, doubling a schedule that's already tight. Both are
-last-20% moves; resolution and routing are the first 80%.
-
-**PTQ, not QAT.** Ultralytics has no QAT path, so QAT means hand-rolling
-`torch.ao.quantization` around their loop and hoping it exports. Dynamic INT8 is
-20 minutes with a known-good FP32 fallback.
-
-## Open risks
-
-- The aspect-ratio router is a property of *this* collection. If the private
-  test set mixes lights and signs in one frame, routing on it alone drops half
-  the score. `predict.py` must run both branches when the ratio is ambiguous.
-- The `[0.30, 0.90]` band caps light recall at ~96–98%. Deliberate: the
-  resolution it buys is worth more than the tail.
-- INT8 hurts small objects most. Gate it on measured val F1, not on the size win.
+- **The shape-based router assumes lights and signs never share an image.** True
+  for all 2,595 images we have, but it is a property of how this data was
+  collected. If the private test set mixes them, `predict.py` must run both
+  models when the shape is ambiguous.
+- **The crop caps lights recall at ~96%.** Lights outside the 30–90% strip are
+  invisible to us. Deliberate: the resolution gained is worth more than the tail.
+- **INT8 quantisation hurts small objects most.** Ship it only if measured F1
+  holds.

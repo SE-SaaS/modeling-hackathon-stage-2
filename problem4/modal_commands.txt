@@ -88,7 +88,7 @@ modal run problem4/training_scripts/lights_t768_y26/train.py        # 7 | yolo26
 modal run problem4/training_scripts/signs_640/train.py              # 8 | baseline       [dataset]
 modal run problem4/training_scripts/signs_640_aug/train.py          # 9 | havy aug
 modal run problem4/training_scripts/signs_960/train.py              # 10| heavy aug @960
-modal run problem4/training_scripts/signs_640_aug_y26/train.py      # 11| yolo26n vs yolo11n
+    modal run problem4/training_scripts/signs_640_aug_y26/train.py      # 11| yolo26n vs yolo11n
 
 
 ==========================================================================
