@@ -141,7 +141,7 @@ EXPERIMENTS = {
         notes="Band 0.20-0.95 instead of 0.30-0.90: 98.2%/98.7% box coverage "
               "instead of 96.0%/97.8%, but a taller crop means smaller lights "
               "at the same imgsz. Tests whether the recall ceiling is worth it.",
-        dataset=dict(branch="lights", cache_key="lights_b20_95_t4",
+        dataset=dict(branch="lights", cache_key="lights_b20_95_t3",
                      band=[0.20, 0.95]),
         train=dict(model="yolo11n.pt", imgsz=768, batch=24, epochs=150),
     ),
