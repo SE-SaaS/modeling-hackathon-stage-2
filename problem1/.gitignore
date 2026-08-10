@@ -1,0 +1,11 @@
+# Challenge data — re-download from the competition page, do not commit.
+Dataset/
+train.csv
+test.csv
+*.wav
+
+# Generated artifacts. The embeddings and per-fold logits are large binaries
+# that git cannot diff; regenerate them with src/ser_wavlm.py.
+*.npy
+*.pt
+runs/

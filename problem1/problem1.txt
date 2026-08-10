@@ -1,0 +1,23 @@
+Speech carries information beyond words: prosody, intensity, and spectral
+characteristics encode the speaker's emotional state. Automatic recognition of
+emotion from speech is a core problem in affective computing, with applications
+in call-center analytics, mental-health screening, human–computer interaction,
+and driver-monitoring systems.
+
+In this competition, you are given short speech recordings (1–5 seconds,
+16 kHz mono WAV), each expressing one of six emotional states:
+
+angry · happy · sad · fearful · disgust · neutral
+
+The mapping for the classes are as follows:
+
+Class ID	Class label
+angry	0
+happy	1
+sad	2
+fearful	3
+disgust	4
+neutral	5
+Your task is to build a model that classifies the emotion conveyed in each
+utterance. The test set contains only speakers not present in the training data, so your model must generalize to unseen voices rather than memorize
+speaker identity.
