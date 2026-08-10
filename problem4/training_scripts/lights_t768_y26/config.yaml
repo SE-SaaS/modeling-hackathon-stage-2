@@ -1,0 +1,13 @@
+experiment:
+  name: lights_t768_y26
+  notes: "yolo26n instead of yolo11n at the reference geometry. Same COCO pretraining,\
+    \ same param count, but NMS-free \u2014 worth testing because the lights branch\
+    \ pays NMS three times per frame."
+dataset:
+  branch: lights
+  cache_key: lights_b30_90_t3
+train:
+  model: yolo26n.pt
+  imgsz: 768
+  batch: 24
+  epochs: 70

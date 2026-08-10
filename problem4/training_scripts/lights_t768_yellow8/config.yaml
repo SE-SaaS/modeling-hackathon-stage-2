@@ -1,0 +1,14 @@
+experiment:
+  name: lights_t768_yellow8
+  notes: Pushes oversampling to 8x. Yellow is still the weakest class at x4 (0.632
+    vs red 0.684) and carries a third of F1_lights, so the question is whether x4
+    was the ceiling or just the first step.
+dataset:
+  branch: lights
+  cache_key: lights_b30_90_t3_y8
+  yellow_oversample: 8
+train:
+  model: yolo11n.pt
+  imgsz: 768
+  batch: 24
+  epochs: 70

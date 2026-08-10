@@ -1,0 +1,12 @@
+experiment:
+  name: lights_t640
+  notes: Lights baseline. 3 tiles of the 0.30-0.90 band @640 -> 8.4px light. Cheapest
+    of the sweep; the latency floor to beat.
+dataset:
+  branch: lights
+  cache_key: lights_b30_90_t3
+train:
+  model: yolo11n.pt
+  imgsz: 640
+  batch: 32
+  epochs: 70

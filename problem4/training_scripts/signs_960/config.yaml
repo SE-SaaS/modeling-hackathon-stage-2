@@ -1,0 +1,26 @@
+experiment:
+  name: signs_960
+  notes: Signs at 960 with the heavy augmentation. Control for the claim that signs
+    do not need resolution; if this ties signs_640_aug, ship the 640 and spend the
+    time on lights.
+dataset:
+  branch: signs
+  cache_key: signs
+train:
+  model: yolo11n.pt
+  imgsz: 960
+  batch: 8
+  epochs: 140
+  mosaic: 1.0
+  close_mosaic: 15
+  mixup: 0.15
+  copy_paste: 0.3
+  scale: 0.9
+  degrees: 10.0
+  translate: 0.2
+  shear: 3.0
+  perspective: 0.0005
+  hsv_h: 0.02
+  hsv_s: 0.8
+  hsv_v: 0.5
+  erasing: 0.2

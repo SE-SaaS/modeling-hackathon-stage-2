@@ -1,0 +1,12 @@
+{
+  "last_action": "trained",
+  "error": null,
+  "remote_status": "complete",
+  "fetched": {
+    "downloaded": 24,
+    "skipped": 0,
+    "failed": 0,
+    "bytes": 31227496,
+    "present": true
+  }
+}

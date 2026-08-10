@@ -1,0 +1,13 @@
+experiment:
+  name: lights_t896_yellow4
+  notes: 'The two round-1 winners together: largest input in the sweep plus yellow
+    x4. Expected to be the final lights model if latency allows.'
+dataset:
+  branch: lights
+  cache_key: lights_b30_90_t3_y4
+  yellow_oversample: 4
+train:
+  model: yolo11n.pt
+  imgsz: 896
+  batch: 16
+  epochs: 70

@@ -1,0 +1,391 @@
+Dataset analysis for: C:\Users\mamou\Downloads\too-small-to-handle\dataset_release\dataset_release
+
+==============================================================================
+0. SPLIT SUMMARY
+==============================================================================
+train  images=2099   objects=6127   empty_images=0 (0.0%)
+val    images=496    objects=1787   empty_images=0 (0.0%)
+
+==============================================================================
+1. IMAGE RESOLUTION  (decides how many pixels a 0.0043-wide light really is)
+==============================================================================
+
+[train] 7 distinct resolution(s):
+     2704 x 1520   ar=1.779    1555 images (74.1%)
+     3060 x 4080   ar=0.750     433 images (20.6%)
+     1536 x 2048   ar=0.750      66 images (3.1%)
+     3024 x 4032   ar=0.750      21 images (1.0%)
+     5712 x 4284   ar=1.333      12 images (0.6%)
+     4032 x 3024   ar=1.333      10 images (0.5%)
+     4284 x 5712   ar=0.750       2 images (0.1%)
+  width  (px)            n=2099   min=1536 p1=1536 p25=2704 med=2704 p75=2704 p99=4032 max=5712 mean=2769
+  height (px)            n=2099   min=1520 p1=1520 p25=1520 med=1520 p75=2048 p99=4080 max=5712 mean=2117
+
+[val] 6 distinct resolution(s):
+     2704 x 1520   ar=1.779     371 images (74.8%)
+     3060 x 4080   ar=0.750     108 images (21.8%)
+     3024 x 4032   ar=0.750      10 images (2.0%)
+     1536 x 2048   ar=0.750       3 images (0.6%)
+     5712 x 4284   ar=1.333       3 images (0.6%)
+     4032 x 3024   ar=1.333       1 images (0.2%)
+  width  (px)            n=496    min=1536 p1=2704 p25=2704 med=2704 p75=2704 p99=3060 max=5712 mean=2802
+  height (px)            n=496    min=1520 p1=1520 p25=1520 med=1520 p75=2048 p99=4080 max=4284 mean=2151
+
+==============================================================================
+2. CLASS COUNTS
+==============================================================================
+ id name                  train obj    val obj
+  0 Bus stop                     72         15
+  1 Crossroad                   140         30
+  2 No entry                     88         19
+  3 No parking                   71         15
+  4 No stopping                  79         16
+  5 Speed limit                  88         19
+  6 Yield                        76         17
+  7 direction of road            71         13
+  8 red light                  2920       1051
+  9 yellow light                 99         27
+ 10 green light                2423        565
+
+Images containing at least one instance of each class (this, not object count, is how many training scenes you actually have):
+ id name                  train imgs   val imgs
+  0 Bus stop                      72         15
+  1 Crossroad                    109         29
+  2 No entry                      87         19
+  3 No parking                    71         15
+  4 No stopping                   78         16
+  5 Speed limit                   88         19
+  6 Yield                         75         17
+  7 direction of road             70         12
+  8 red light                   1136        319
+  9 yellow light                  77         17
+ 10 green light                 1051        246
+
+==============================================================================
+3. OBJECT SIZE IN PIXELS  (the core of the problem)
+==============================================================================
+
+[train] per-class box width in PIXELS of the original image
+  0 Bus stop             n=72     min=121.3 p1=127.0 p25=370.5 med=622.5 p75=1041.6 p99=1576.4 max=1784.0 mean=717.1
+  1 Crossroad            n=140    min=40.6 p1=53.7 p25=162.2 med=320.7 p75=609.0 p99=1383.9 max=1546.8 mean=426.9
+  2 No entry             n=88     min=73.0 p1=89.5 p25=273.5 med=509.3 p75=780.0 p99=1980.5 max=2177.4 mean=598.2
+  3 No parking           n=71     min=86.2 p1=135.3 p25=326.1 med=555.1 p75=859.7 p99=1702.6 max=1978.0 mean=657.4
+  4 No stopping          n=79     min=78.5 p1=82.7 p25=239.8 med=382.7 p75=641.4 p99=1518.1 max=1530.7 mean=492.2
+  5 Speed limit          n=88     min=51.4 p1=56.1 p25=191.9 med=394.2 p75=680.4 p99=1645.9 max=1767.8 mean=491.1
+  6 Yield                n=76     min=94.7 p1=98.7 p25=355.7 med=579.4 p75=948.6 p99=2375.5 max=2969.7 mean=686.4
+  7 direction of road    n=71     min=73.0 p1=76.8 p25=234.5 med=425.8 p75=679.1 p99=2106.8 max=2646.3 mean=538.5
+  8 red light            n=2920   min=2.2 p1=3.4 p25=8.1 med=11.7 p75=17.3 p99=75.2 max=133.6 mean=15.4
+  9 yellow light         n=99     min=4.3 p1=4.7 p25=9.5 med=11.9 p75=20.6 p99=66.3 max=66.3 mean=17.1
+  10 green light         n=2423   min=1.9 p1=3.7 p25=8.5 med=12.5 p75=19.7 p99=71.9 max=154.7 mean=16.9
+
+[train] per-class box width NORMALIZED (fraction of image width)
+  0 Bus stop             n=72     min=0.03965 p1=0.04151 p25=0.12109 med=0.20343 p75=0.34038 p99=0.51516 max=0.58300 mean=0.23434
+  1 Crossroad            n=140    min=0.02290 p1=0.02711 p25=0.06341 med=0.11008 p75=0.18709 p99=0.41899 max=0.50550 mean=0.13497
+  2 No entry             n=88     min=0.03170 p1=0.03630 p25=0.09511 med=0.15764 p75=0.21620 p99=0.64722 max=0.71158 mean=0.18892
+  3 No parking           n=71     min=0.02818 p1=0.04421 p25=0.10656 med=0.18142 p75=0.28093 p99=0.55641 max=0.64641 mean=0.21488
+  4 No stopping          n=79     min=0.05108 p1=0.05383 p25=0.08543 med=0.13210 p75=0.21488 p99=0.49610 max=0.50022 mean=0.16864
+  5 Speed limit          n=88     min=0.02994 p1=0.03148 p25=0.07133 med=0.13738 p75=0.23074 p99=0.53788 max=0.57772 mean=0.17183
+  6 Yield                n=76     min=0.04495 p1=0.05581 p25=0.11757 med=0.19023 p75=0.31132 p99=0.77631 max=0.97050 mean=0.23181
+  7 direction of road    n=71     min=0.02642 p1=0.03012 p25=0.08895 med=0.13915 p75=0.22193 p99=0.68851 max=0.86482 mean=0.17802
+  8 red light            n=2920   min=0.00081 p1=0.00126 p25=0.00300 med=0.00433 p75=0.00640 p99=0.02781 max=0.04941 mean=0.00568
+  9 yellow light         n=99     min=0.00159 p1=0.00174 p25=0.00353 med=0.00440 p75=0.00760 p99=0.02452 max=0.02452 mean=0.00632
+  10 green light         n=2423   min=0.00070 p1=0.00138 p25=0.00314 med=0.00462 p75=0.00729 p99=0.02659 max=0.05721 mean=0.00626
+
+[train] family aggregate
+  SIGNS 0-7 w(px)        n=685    min=40.6 p1=69.2 p25=242.5 med=458.1 p75=770.7 p99=1816.8 max=2969.7 mean=559.4
+  SIGNS 0-7 h(px)        n=685    min=48.7 p1=75.3 p25=280.3 med=501.2 p75=857.0 p99=2263.5 max=3508.7 mean=635.2
+  SIGNS 0-7 w(norm)      n=685    min=0.02290 p1=0.02818 p25=0.08807 med=0.15324 p75=0.24174 p99=0.59371 max=0.97050 mean=0.18445
+  SIGNS 0-7 aspect w/h   n=685    min=0.304 p1=0.478 p25=0.771 med=0.924 p75=1.033 p99=1.287 max=1.500 mean=0.906
+  LIGHTS 8-10 w(px)      n=5442   min=1.9 p1=3.6 p25=8.4 med=12.0 p75=18.3 p99=75.0 max=154.7 mean=16.1
+  LIGHTS 8-10 h(px)      n=5442   min=2.2 p1=4.1 p25=9.3 med=13.3 p75=19.5 p99=77.3 max=134.4 mean=17.4
+  LIGHTS 8-10 w(norm)    n=5442   min=0.00070 p1=0.00133 p25=0.00311 med=0.00444 p75=0.00677 p99=0.02773 max=0.05721 mean=0.00595
+  LIGHTS 8-10 aspect w/h n=5442   min=0.222 p1=0.478 p25=0.797 med=0.927 p75=1.060 p99=1.571 max=2.932 mean=0.941
+
+[val] per-class box width in PIXELS of the original image
+  0 Bus stop             n=15     min=150.9 p1=159.2 p25=274.9 med=517.4 p75=824.6 p99=1361.8 max=1385.2 mean=604.4
+  1 Crossroad            n=30     min=138.0 p1=155.8 p25=300.9 med=479.6 p75=929.7 p99=1359.4 max=1379.8 mean=625.8
+  2 No entry             n=19     min=231.8 p1=233.2 p25=428.5 med=689.9 p75=972.4 p99=1429.5 max=1449.8 mean=709.4
+  3 No parking           n=15     min=159.8 p1=161.6 p25=339.6 med=474.3 p75=630.6 p99=885.7 max=900.1 mean=495.9
+  4 No stopping          n=16     min=140.1 p1=160.7 p25=338.6 med=641.4 p75=883.9 p99=1293.5 max=1303.0 mean=677.6
+  5 Speed limit          n=19     min=86.2 p1=112.4 p25=570.5 med=679.1 p75=954.0 p99=2354.4 max=2608.6 mean=776.4
+  6 Yield                n=17     min=165.0 p1=174.8 p25=400.4 med=803.1 p75=1627.7 p99=2082.4 max=2128.9 mean=933.3
+  7 direction of road    n=13     min=145.5 p1=148.8 p25=242.5 med=328.8 p75=452.7 p99=1432.2 max=1525.3 mean=453.2
+  8 red light            n=1051   min=2.7 p1=3.9 p25=7.9 med=10.5 p75=14.7 p99=63.6 max=100.8 mean=13.7
+  9 yellow light         n=27     min=3.9 p1=4.6 p25=10.0 med=12.9 p75=25.8 p99=60.7 max=61.3 mean=20.4
+  10 green light         n=565    min=3.4 p1=4.5 p25=8.3 med=12.3 p75=19.0 p99=56.7 max=96.0 mean=15.4
+
+[val] per-class box width NORMALIZED (fraction of image width)
+  0 Bus stop             n=15     min=0.04932 p1=0.05203 p25=0.08983 med=0.16909 p75=0.26948 p99=0.44502 max=0.45266 mean=0.19750
+  1 Crossroad            n=30     min=0.06517 p1=0.06568 p25=0.09864 med=0.16028 p75=0.28402 p99=0.44426 max=0.45090 mean=0.20040
+  2 No entry             n=19     min=0.07574 p1=0.07637 p25=0.13359 med=0.17966 p75=0.28710 p99=0.46714 max=0.47380 mean=0.22202
+  3 No parking           n=15     min=0.05284 p1=0.05333 p25=0.11096 med=0.15500 p75=0.20608 p99=0.28946 max=0.29414 mean=0.16216
+  4 No stopping          n=16     min=0.04580 p1=0.05266 p25=0.11096 med=0.20960 p75=0.28886 p99=0.42270 max=0.42580 mean=0.22157
+  5 Speed limit          n=19     min=0.02818 p1=0.03674 p25=0.18758 med=0.22193 p75=0.31176 p99=0.76942 max=0.85249 mean=0.25391
+  6 Yield                n=17     min=0.07398 p1=0.07905 p25=0.13738 med=0.26244 p75=0.53192 p99=0.68051 max=0.69573 mean=0.31580
+  7 direction of road    n=13     min=0.04756 p1=0.05094 p25=0.09335 med=0.11273 p75=0.14795 p99=0.46802 max=0.49846 mean=0.15242
+  8 red light            n=1051   min=0.00100 p1=0.00146 p25=0.00290 med=0.00388 p75=0.00545 p99=0.02350 max=0.03728 mean=0.00506
+  9 yellow light         n=27     min=0.00144 p1=0.00169 p25=0.00372 med=0.00477 p75=0.00952 p99=0.02243 max=0.02267 mean=0.00755
+  10 green light         n=565    min=0.00126 p1=0.00165 p25=0.00307 med=0.00455 p75=0.00703 p99=0.02096 max=0.03550 mean=0.00568
+
+[val] family aggregate
+  SIGNS 0-7 w(px)        n=144    min=86.2 p1=138.9 p25=319.2 med=578.6 p75=900.1 p99=2003.8 max=2608.6 mean=667.4
+  SIGNS 0-7 h(px)        n=144    min=145.5 p1=163.3 p25=371.9 med=644.1 p75=977.8 p99=2775.2 max=3104.5 mean=761.8
+  SIGNS 0-7 w(norm)      n=144    min=0.02818 p1=0.04655 p25=0.10700 med=0.18494 p75=0.28578 p99=0.65483 max=0.85249 mean=0.21767
+  SIGNS 0-7 aspect w/h   n=144    min=0.457 p1=0.491 p25=0.792 med=0.929 p75=1.003 p99=1.254 max=1.352 mean=0.898
+  LIGHTS 8-10 w(px)      n=1643   min=2.7 p1=4.0 p25=8.0 med=11.0 p75=16.6 p99=61.7 max=100.8 mean=14.4
+  LIGHTS 8-10 h(px)      n=1643   min=2.5 p1=3.5 p25=8.2 med=11.6 p75=17.0 p99=73.9 max=198.6 mean=15.0
+  LIGHTS 8-10 w(norm)    n=1643   min=0.00100 p1=0.00149 p25=0.00296 med=0.00407 p75=0.00614 p99=0.02282 max=0.03728 mean=0.00531
+  LIGHTS 8-10 aspect w/h n=1643   min=0.095 p1=0.417 p25=0.831 med=0.979 p75=1.148 p99=2.051 max=4.660 mean=1.016
+
+==============================================================================
+4. WHAT A LIGHT LOOKS LIKE AFTER RESIZE  (letterbox to square, long side = S)
+==============================================================================
+Effective pixel width of a light box when the FULL frame is resized to SxS.
+Detection needs roughly >= 8 px for a stride-8 head, >= 4-6 px with a P2 (stride-4) head.
+
+[train] n_lights=5442
+   input S  median px      p25      p10    >=4px    >=6px    >=8px
+       416       1.85     1.29     0.95   13.1%    5.7%    2.9%
+       640       2.84     1.99     1.47   28.9%   13.8%    8.3%
+       960       4.26     2.98     2.20   54.8%   28.9%   17.0%
+      1280       5.68     3.98     2.94   74.1%   46.4%   28.9%
+      1600       7.10     4.97     3.67   86.5%   61.9%   41.9%
+      1920       8.52     5.97     4.40   92.9%   74.1%   54.8%
+      2560      11.36     7.95     5.87   97.8%   89.0%   74.1%
+
+[val] n_lights=1643
+   input S  median px      p25      p10    >=4px    >=6px    >=8px
+       416       1.69     1.23     0.92    9.3%    3.9%    2.1%
+       640       2.60     1.89     1.42   24.2%   10.2%    5.1%
+       960       3.91     2.84     2.13   48.4%   24.2%   12.7%
+      1280       5.21     3.79     2.84   71.2%   39.1%   24.2%
+      1600       6.51     4.73     3.55   85.3%   57.0%   33.2%
+      1920       7.81     5.68     4.26   92.0%   71.2%   48.4%
+      2560      10.41     7.58     5.68   98.4%   87.5%   71.2%
+
+
+==============================================================================
+5. SPATIAL DISTRIBUTION  (can we throw away most of the frame?)
+==============================================================================
+
+[train] LIGHTS 8-10
+  cy (norm)              n=5442   min=0.0110 p1=0.1356 p25=0.5687 med=0.6425 p75=0.7145 p99=0.8891 max=0.9579 mean=0.6285
+  cx (norm)              n=5442   min=0.0021 p1=0.0279 p25=0.4029 med=0.5050 p75=0.6334 p99=0.9688 max=0.9972 mean=0.5095
+  box top y              n=5442   min=-0.0000 p1=0.1126 p25=0.5627 med=0.6387 p75=0.7108 p99=0.8855 max=0.9508 mean=0.6228
+  box bot y              n=5442   min=0.0219 p1=0.1633 p25=0.5746 med=0.6467 p75=0.7187 p99=0.8937 max=0.9650 mean=0.6343
+  cy histogram (deciles):
+    0.0-0.1     41   0.8% 
+    0.1-0.2     46   0.8% 
+    0.2-0.3    101   1.9% #
+    0.3-0.4    142   2.6% #
+    0.4-0.5    384   7.1% ####
+    0.5-0.6   1123  20.6% ############
+    0.6-0.7   1997  36.7% ######################
+    0.7-0.8   1191  21.9% #############
+    0.8-0.9    385   7.1% ####
+    0.9-1.0     32   0.6% 
+
+[train] SIGNS 0-7
+  cy (norm)              n=685    min=0.0575 p1=0.1402 p25=0.3170 med=0.3851 p75=0.4571 p99=0.7723 max=0.8527 mean=0.3956
+  cx (norm)              n=685    min=0.0528 p1=0.1465 p25=0.4368 med=0.5029 p75=0.5698 p99=0.9102 max=0.9635 mean=0.5087
+  box top y              n=685    min=-0.0000 p1=0.0090 p25=0.2365 med=0.3197 p75=0.3963 p99=0.6505 max=0.8336 mean=0.3151
+  box bot y              n=685    min=0.1149 p1=0.2182 p25=0.3923 med=0.4531 p75=0.5363 p99=0.9438 max=1.0000 mean=0.4761
+  cy histogram (deciles):
+    0.0-0.1      2   0.3% 
+    0.1-0.2     26   3.8% ##
+    0.2-0.3    112  16.4% #########
+    0.3-0.4    238  34.7% ####################
+    0.4-0.5    203  29.6% #################
+    0.5-0.6     62   9.1% #####
+    0.6-0.7     22   3.2% #
+    0.7-0.8     16   2.3% #
+    0.8-0.9      4   0.6% 
+    0.9-1.0      0   0.0% 
+
+[val] LIGHTS 8-10
+  cy (norm)              n=1643   min=0.0221 p1=0.1551 p25=0.6670 med=0.7188 p75=0.7505 p99=0.7996 max=0.8167 mean=0.6899
+  cx (norm)              n=1643   min=0.0030 p1=0.0553 p25=0.4342 med=0.5372 p75=0.6721 p99=0.9888 max=0.9982 mean=0.5404
+  box top y              n=1643   min=0.0000 p1=0.1334 p25=0.6621 med=0.7152 p75=0.7476 p99=0.7962 max=0.8145 mean=0.6849
+  box bot y              n=1643   min=0.0409 p1=0.1768 p25=0.6727 med=0.7229 p75=0.7539 p99=0.8039 max=0.8203 mean=0.6948
+  cy histogram (deciles):
+    0.0-0.1     11   0.7% 
+    0.1-0.2     10   0.6% 
+    0.2-0.3     14   0.9% 
+    0.3-0.4     13   0.8% 
+    0.4-0.5     25   1.5% 
+    0.5-0.6    116   7.1% ####
+    0.6-0.7    431  26.2% ###############
+    0.7-0.8   1007  61.3% ####################################
+    0.8-0.9     16   1.0% 
+    0.9-1.0      0   0.0% 
+
+[val] SIGNS 0-7
+  cy (norm)              n=144    min=0.0760 p1=0.1772 p25=0.3146 med=0.3960 p75=0.4562 p99=0.7517 max=0.7939 mean=0.3976
+  cx (norm)              n=144    min=0.0572 p1=0.2063 p25=0.4469 med=0.5214 p75=0.6085 p99=0.7978 max=0.9511 mean=0.5244
+  box top y              n=144    min=0.0000 p1=0.0064 p25=0.1889 med=0.3124 p75=0.3927 p99=0.5982 max=0.7054 mean=0.3029
+  box bot y              n=144    min=0.1136 p1=0.2399 p25=0.4122 med=0.4663 p75=0.5568 p99=0.9160 max=0.9709 mean=0.4923
+  cy histogram (deciles):
+    0.0-0.1      1   0.7% 
+    0.1-0.2      3   2.1% #
+    0.2-0.3     28  19.4% ###########
+    0.3-0.4     41  28.5% #################
+    0.4-0.5     45  31.2% ##################
+    0.5-0.6     18  12.5% #######
+    0.6-0.7      5   3.5% ##
+    0.7-0.8      3   2.1% #
+    0.8-0.9      0   0.0% 
+    0.9-1.0      0   0.0% 
+
+==============================================================================
+6. ROI CROP BAND + INPUT TENSOR FOR THE LIGHTS MODEL
+==============================================================================
+Crop = full image width x band [y0,y1] of the height, then FIT (aspect-preserving,
+letterbox) into the input tensor TWxTH. scale = min(TW/crop_w, TH/crop_h).
+Cropping vertically does NOT raise resolution on its own for these wide frames --
+width is the limiting dimension. It only helps if the tensor is also wide and short,
+so the same TW covers fewer source pixels of height. What actually buys resolution
+is a larger TW, and the crop is what makes a large TW affordable.
+'cov' = fraction of light boxes fully inside the band.
+'px' = median light width in tensor pixels. 'MPix' = tensor area, the cost proxy.
+
+[train] light-box coverage per band
+            band  light cov   sign cov  band height
+  [0.00,1.00]    100.00%    100.00%         1.00
+  [0.30,0.90]     95.99%     59.27%         0.60
+  [0.35,0.90]     94.87%     42.19%         0.55
+  [0.40,0.90]     93.44%     26.72%         0.50
+  [0.45,0.90]     90.63%     14.60%         0.45
+  [0.40,0.85]     90.89%     25.40%         0.45
+  [0.45,0.85]     88.07%     13.28%         0.40
+  [0.50,0.85]     84.18%      5.40%         0.35
+  [0.45,0.80]     83.85%     12.26%         0.35
+  [0.50,0.80]     79.95%      4.53%         0.30
+  [0.30,1.00]     96.45%     60.44%         0.70
+  [0.40,1.00]     93.90%     27.74%         0.60
+  [0.50,1.00]     87.19%      7.45%         0.50
+  [0.20,0.95]     98.16%     82.34%         0.75
+  [0.35,0.95]     95.31%     42.48%         0.60
+
+[train] median light px in the tensor, band x tensor grid (only bands with >=95% light coverage are worth using)
+            band     960x960   1280x1280    1280x384    1600x448    1920x448    1920x640
+  [0.00,1.00]        4.26        5.68        3.03        3.54        3.54        5.05   (cov 100.0%)
+  [0.30,0.90]        4.26        5.68        5.05        5.89        5.89        8.42   (cov 96.0%)
+  [0.35,0.90]        4.26        5.68        5.51        6.43        6.43        8.52   (cov 94.9%)
+  [0.40,0.90]        4.26        5.68        5.68        7.07        7.07        8.52   (cov 93.4%)
+  [0.45,0.90]        4.26        5.68        5.68        7.10        7.86        8.52   (cov 90.6%)
+  [0.40,0.85]        4.26        5.68        5.68        7.10        7.86        8.52   (cov 90.9%)
+  [0.30,1.00]        4.26        5.68        4.33        5.05        5.05        7.22   (cov 96.5%)
+  [0.40,1.00]        4.26        5.68        5.05        5.89        5.89        8.42   (cov 93.9%)
+  [0.20,0.95]        4.26        5.68        4.04        4.72        4.72        6.74   (cov 98.2%)
+  [0.35,0.95]        4.26        5.68        5.05        5.89        5.89        8.42   (cov 95.3%)
+                       0.92M       1.64M       0.49M       0.72M       0.86M       1.23M  <- tensor MPix
+
+[val] light-box coverage per band
+            band  light cov   sign cov  band height
+  [0.00,1.00]    100.00%    100.00%         1.00
+  [0.30,0.90]     97.81%     52.08%         0.60
+  [0.35,0.90]     97.44%     43.75%         0.55
+  [0.40,0.90]     97.08%     25.00%         0.50
+  [0.45,0.90]     96.17%     13.19%         0.45
+  [0.40,0.85]     97.08%     25.00%         0.45
+  [0.45,0.85]     96.17%     13.19%         0.40
+  [0.50,0.85]     95.56%      8.33%         0.35
+  [0.45,0.80]     95.56%     12.50%         0.35
+  [0.50,0.80]     94.95%      7.64%         0.30
+  [0.30,1.00]     97.81%     53.47%         0.70
+  [0.40,1.00]     97.08%     26.39%         0.60
+  [0.50,1.00]     95.56%      9.72%         0.50
+  [0.20,0.95]     98.66%     73.61%         0.75
+  [0.35,0.95]     97.44%     44.44%         0.60
+
+[val] median light px in the tensor, band x tensor grid (only bands with >=95% light coverage are worth using)
+            band     960x960   1280x1280    1280x384    1600x448    1920x448    1920x640
+  [0.00,1.00]        3.91        5.21        2.78        3.24        3.24        4.63   (cov 100.0%)
+  [0.30,0.90]        3.91        5.21        4.63        5.40        5.40        7.72   (cov 97.8%)
+  [0.35,0.90]        3.91        5.21        5.05        5.89        5.89        7.81   (cov 97.4%)
+  [0.40,0.90]        3.91        5.21        5.21        6.48        6.48        7.81   (cov 97.1%)
+  [0.45,0.90]        3.91        5.21        5.21        6.51        7.20        7.81   (cov 96.2%)
+  [0.40,0.85]        3.91        5.21        5.21        6.51        7.20        7.81   (cov 97.1%)
+  [0.45,0.85]        3.91        5.21        5.21        6.51        7.81        7.81   (cov 96.2%)
+  [0.50,0.85]        3.91        5.21        5.21        6.51        7.81        7.81   (cov 95.6%)
+  [0.45,0.80]        3.91        5.21        5.21        6.51        7.81        7.81   (cov 95.6%)
+  [0.50,0.80]        3.91        5.21        5.21        6.51        7.81        7.81   (cov 94.9%)
+  [0.30,1.00]        3.91        5.21        3.97        4.63        4.63        6.62   (cov 97.8%)
+  [0.40,1.00]        3.91        5.21        4.63        5.40        5.40        7.72   (cov 97.1%)
+  [0.50,1.00]        3.91        5.21        5.21        6.48        6.48        7.81   (cov 95.6%)
+  [0.20,0.95]        3.91        5.21        3.71        4.32        4.32        6.18   (cov 98.7%)
+  [0.35,0.95]        3.91        5.21        4.63        5.40        5.40        7.72   (cov 97.4%)
+                       0.92M       1.64M       0.49M       0.72M       0.86M       1.23M  <- tensor MPix
+
+
+==============================================================================
+7. PER-IMAGE OBJECT COUNTS
+==============================================================================
+
+[train]
+  objects / image        n=2099   min=1.00 p1=1.00 p25=1.00 med=2.00 p75=4.00 p99=10.00 max=18.00 mean=2.92
+  lights / image         n=2099   min=0.00 p1=0.00 p25=0.00 med=2.00 p75=4.00 p99=10.00 max=18.00 mean=2.59
+  signs  / image         n=2099   min=0.00 p1=0.00 p25=0.00 med=0.00 p75=1.00 p99=3.00 max=5.00 mean=0.33
+  images with lights+signs = 0
+  images with lights only  = 1555
+  images with signs only   = 544
+  images with nothing      = 0
+  max lights in one image  = 18
+  max signs  in one image  = 5
+
+[val]
+  objects / image        n=496    min=1.00 p1=1.00 p25=1.00 med=3.00 p75=5.00 p99=12.00 max=14.00 mean=3.60
+  lights / image         n=496    min=0.00 p1=0.00 p25=0.00 med=3.00 p75=5.00 p99=12.00 max=14.00 mean=3.31
+  signs  / image         n=496    min=0.00 p1=0.00 p25=0.00 med=0.00 p75=1.00 p99=2.00 max=3.00 mean=0.29
+  images with lights+signs = 0
+  images with lights only  = 371
+  images with signs only   = 125
+  images with nothing      = 0
+  max lights in one image  = 14
+  max signs  in one image  = 3
+
+==============================================================================
+7b. IMAGE-TYPE SEPARATION  (do lights and signs live in different images?)
+==============================================================================
+If they never co-occur, a cheap router (aspect ratio / resolution) can send each
+image to ONE branch instead of running both. That halves the per-frame cost.
+Risk: this is a property of THIS data collection, and the private test set may
+not honour it. Treat as a speed optimisation with a safe fallback, not a hard rule.
+
+[train] breakdown by resolution -> which family appears
+      resolution      ar   images  light imgs  sign imgs   both
+    2704x1520      1.779     1555        1555          0      0
+    3060x4080      0.750      433           0        433      0
+    1536x2048      0.750       66           0         66      0
+    3024x4032      0.750       21           0         21      0
+    5712x4284      1.333       12           0         12      0
+    4032x3024      1.333       10           0         10      0
+    4284x5712      0.750        2           0          2      0
+
+[train] router test: landscape (ar > 1.6) -> lights, else -> signs
+  ar>1.6 :  1555 imgs | imgs w/ lights=1555  imgs w/ signs=0     | light objs=5442  sign objs=0
+  ar<=1.6:   544 imgs | imgs w/ lights=0     imgs w/ signs=544   | light objs=0     sign objs=685
+  -> objects a perfect ar-router would MISS if each image ran only one branch: lights=0, signs=0
+
+[val] breakdown by resolution -> which family appears
+      resolution      ar   images  light imgs  sign imgs   both
+    2704x1520      1.779      371         371          0      0
+    3060x4080      0.750      108           0        108      0
+    3024x4032      0.750       10           0         10      0
+    1536x2048      0.750        3           0          3      0
+    5712x4284      1.333        3           0          3      0
+    4032x3024      1.333        1           0          1      0
+
+[val] router test: landscape (ar > 1.6) -> lights, else -> signs
+  ar>1.6 :   371 imgs | imgs w/ lights=371   imgs w/ signs=0     | light objs=1643  sign objs=0
+  ar<=1.6:   125 imgs | imgs w/ lights=0     imgs w/ signs=125   | light objs=0     sign objs=144
+  -> objects a perfect ar-router would MISS if each image ran only one branch: lights=0, signs=0
+
+==============================================================================
+8. DERIVED RECOMMENDATIONS (mechanical, read section 4 and 6 to check them)
+==============================================================================
+- Median light width in original pixels: 12.0
+- Full-frame resize to 640: median light becomes 2.84 px (unusable)
+- Full-frame resize to 960: median light becomes 4.26 px (marginal)
+- Full-frame resize to 1280: median light becomes 5.68 px (marginal)
+- Tightest band with best light coverage among candidates: (0.0, 1.0) -> 100.00%

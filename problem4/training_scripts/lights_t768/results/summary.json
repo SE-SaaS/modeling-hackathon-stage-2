@@ -1,0 +1,16 @@
+{
+  "experiment": "lights_t768",
+  "best_weights": "/__modal/volumes/vo-kFlQfMQnxf6EWvuwSHOtlw/lights_t768/train/weights/best.pt",
+  "val": {
+    "map50": 0.6385224530142725,
+    "map": 0.2680653975440998,
+    "per_class_map50": {
+      "0": 0.6615120627395741,
+      "1": 0.590008646243624,
+      "2": 0.6640466500596195
+    }
+  },
+  "onnx": "/__modal/volumes/vo-kFlQfMQnxf6EWvuwSHOtlw/lights_t768/train/weights/best.onnx",
+  "onnx_mb": 10.68,
+  "onnx_int8": "/__modal/volumes/vo-kFlQfMQnxf6EWvuwSHOtlw/lights_t768/train/weights/best_int8.onnx"
+}
