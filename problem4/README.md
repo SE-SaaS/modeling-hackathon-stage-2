@@ -155,7 +155,7 @@ on Modal (cloud A100 GPUs), in parallel.
 | **8** | **`signs_640`** | plain baseline | **0.973** | ✅ **SHIPPED** |
 | 9 | `signs_640_aug` | heavy image augmentation | running | — |
 | 10 | `signs_960` | bigger input, 960 px | 0.957 | worse **and** slower |
-| 11 | `signs_640_aug_y26` | newer network | not run | — |
+| 11 | `signs_640_aug_y26` | heavy aug **and** newer network | 0.943 | worse (two changes, not attributable) |
 
 > **Two different columns, and they disagree.** `mAP50` is the training
 > library's own score, measured on *tiles*. **Real F1** is the actual
@@ -176,8 +176,10 @@ on Modal (cloud A100 GPUs), in parallel.
    floods the score with false alarms. Best value: **0.40**.
 3. **Yellow is the bottleneck.** Only 99 training examples but worth a third of
    the lights score. Repeating those images ×4 helped; ×8 overfit and hurt.
-4. **Signs did not need anything clever.** The plain baseline won; a bigger
-   input made it *worse* (0.957 vs 0.973).
+4. **Signs did not need anything clever.** The plain baseline won at 0.973.
+   A bigger input made it worse (0.957); heavy augmentation plus a newer network
+   made it worse still (0.943). Every attempt to add sophistication cost
+   accuracy.
 5. **Test on the real metric, always.** Three separate times the training
    library's score pointed at the wrong model.
 6. **The rules' submission format is wrong.** Images with no detections are
@@ -190,7 +192,7 @@ on Modal (cloud A100 GPUs), in parallel.
 
 - [x] Analyse the data
 - [x] Build the training pipeline (Modal, self-syncing, resumable)
-- [x] Run 13 experiments (10 finished)
+- [x] Run 13 experiments (11 finished)
 - [x] Build the real-metric evaluator
 - [x] Pick the models — `lights_t768_yellow4` + `signs_640`, conf 0.40
 - [x] Kaggle practice submission — **0.80439**
