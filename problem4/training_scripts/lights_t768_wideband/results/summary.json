@@ -1,0 +1,16 @@
+{
+  "experiment": "lights_t768_wideband",
+  "best_weights": "/__modal/volumes/vo-TkICwu15aBN726nnW8LSNj/lights_t768_wideband/train/weights/best.pt",
+  "val": {
+    "map50": 0.6319552764636189,
+    "map": 0.27313150105695366,
+    "per_class_map50": {
+      "0": 0.6465366952706536,
+      "1": 0.597402618144483,
+      "2": 0.6519265159757202
+    }
+  },
+  "onnx": "/__modal/volumes/vo-TkICwu15aBN726nnW8LSNj/lights_t768_wideband/train/weights/best.onnx",
+  "onnx_mb": 10.68,
+  "onnx_int8": "/__modal/volumes/vo-TkICwu15aBN726nnW8LSNj/lights_t768_wideband/train/weights/best_int8.onnx"
+}

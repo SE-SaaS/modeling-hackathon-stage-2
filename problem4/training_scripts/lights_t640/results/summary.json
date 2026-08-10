@@ -1,0 +1,16 @@
+{
+  "experiment": "lights_t640",
+  "best_weights": "/__modal/volumes/vo-TkICwu15aBN726nnW8LSNj/lights_t640/train/weights/best.pt",
+  "val": {
+    "map50": 0.5681518335918537,
+    "map": 0.24711908077112907,
+    "per_class_map50": {
+      "0": 0.6200172959113632,
+      "1": 0.4469935411021085,
+      "2": 0.6374446637620896
+    }
+  },
+  "onnx": "/__modal/volumes/vo-TkICwu15aBN726nnW8LSNj/lights_t640/train/weights/best.onnx",
+  "onnx_mb": 10.61,
+  "onnx_int8": "/__modal/volumes/vo-TkICwu15aBN726nnW8LSNj/lights_t640/train/weights/best_int8.onnx"
+}

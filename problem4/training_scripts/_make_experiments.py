@@ -169,6 +169,27 @@ EXPERIMENTS = {
         train=dict(model="yolo11n.pt", imgsz=768, batch=24, epochs=70),
     ),
 
+    # ---------------- lights: combine the winners (round 2) ----------------
+    # Round 1 result: imgsz 768 > 640 (+0.071 mAP50, almost all of it yellow),
+    # and yellow_oversample=4 adds +0.042 yellow on top. The two are independent
+    # levers and nothing in round 1 combined them. Wideband lost (0.632 vs
+    # 0.639) and is not carried forward.
+    "lights_t896_yellow4": dict(
+        notes="The two round-1 winners together: largest input in the sweep plus "
+              "yellow x4. Expected to be the final lights model if latency allows.",
+        dataset=dict(branch="lights", cache_key="lights_b30_90_t3_y4",
+                     yellow_oversample=4),
+        train=dict(model="yolo11n.pt", imgsz=896, batch=16, epochs=70),
+    ),
+    "lights_t768_yellow8": dict(
+        notes="Pushes oversampling to 8x. Yellow is still the weakest class at "
+              "x4 (0.632 vs red 0.684) and carries a third of F1_lights, so the "
+              "question is whether x4 was the ceiling or just the first step.",
+        dataset=dict(branch="lights", cache_key="lights_b30_90_t3_y8",
+                     yellow_oversample=8),
+        train=dict(model="yolo11n.pt", imgsz=768, batch=24, epochs=70),
+    ),
+
     # ---------------- lights: different pretrained family ----------------
     # yolo26n is the same size as yolo11n (2.57M vs 2.62M params) and carries the
     # same COCO pretraining, but is END-TO-END / NMS-FREE. We run 3 tiles per

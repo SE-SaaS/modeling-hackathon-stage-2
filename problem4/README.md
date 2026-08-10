@@ -96,7 +96,7 @@ reserve for if yellow F1 comes back broken.
       (dataset construction, training, export, and the competition metric
       reimplemented so experiments are ranked on the real objective).
 - [x] **3. Define the experiment grid** — `training_scripts/_make_experiments.py`
-      generates 11 experiment folders, each a `config.yaml` + a thin `train.py`.
+      generates 13 experiment folders, each a `config.yaml` + a thin `train.py`.
 - [x] **4. Verify the tiling geometry** — round-trip test confirmed box centres
       reconstruct to 0.00 px on train; tile coverage has no gaps at any of the 7
       resolutions in the dataset.
@@ -104,8 +104,8 @@ reserve for if yellow F1 comes back broken.
       downloads its own results, including after a crash. Re-running detects
       local + remote state and resumes instead of restarting. State machine
       tested against a fake volume across all 5 paths.
-- [ ] **6. Upload data to Modal + launch the 11 runs** — see
-      [modal_commands.txt](modal_commands.txt). All 11 are independent and run in
+- [ ] **6. Upload data to Modal + launch the 13 runs** — see
+      [modal_commands.txt](modal_commands.txt). All 13 are independent and run in
       parallel. `python training_scripts/_fetch_all.py` gives a status table.
 - [ ] **7. Pick the winners** — one lights config, one signs config, judged on
       `competition_score()`, not on Ultralytics' mAP (which weights the two
@@ -155,7 +155,7 @@ problem4/
   training_scripts/
     shared_code.py             the engine
     shared_config.yaml         defaults, merged under every experiment
-    _make_experiments.py       generates the 11 folders
+    _make_experiments.py       generates the 13 folders
     <experiment>/
       config.yaml              only what this experiment changes
       train.py                 thin entry point (local + Modal)
