@@ -1,0 +1,106 @@
+==========================================================================
+ TOO SMALL TO HANDLE  —  Modal commands
+ Two volumes:
+   tiny-data   (mounted /data)  ->  dataset_release (images + labels)
+   tiny-runs   (mounted /runs)  ->  per-experiment outputs + built datasets
+ Run everything from:  D:\My Projects\modeling-hackathon-stage-2
+==========================================================================
+
+---------- one-time account setup ----------
+modal setup
+modal profile list
+# modal config set workspace <your-workspace-name>     # only if you use multiple workspaces
+
+
+#---------- create the two volumes ----------
+modal volume create tiny-data
+modal volume create tiny-runs
+
+
+#---------- upload the dataset ----------
+# ~5200 files / 2.4 GB, uploaded as a folder. Takes a few minutes.
+# The remote layout must end up as:  /data/dataset_release/{train,val}/{images,labels}
+modal volume put tiny-data "C:\Users\mamou\Downloads\too-small-to-handle\dataset_release\dataset_release" /dataset_release
+
+# (sanity) confirm the layout before launching anything
+modal volume ls tiny-data /
+modal volume ls tiny-data /dataset_release
+modal volume ls tiny-data /dataset_release/train
+
+
+#---------- regenerate experiment folders (only after editing _make_experiments.py) ----------
+# Rewrites every train.py from the template. Existing config.yaml files are kept.
+python problem4/training_scripts/_make_experiments.py
+
+
+==========================================================================
+ RUN THE EXPERIMENTS
+ All 9 are independent — launch them in separate terminals, they run in
+ parallel. Each builds its own dataset on first use and caches it on
+ /runs/_datasets/<cache_key>, so runs sharing a cache_key reuse the build.
+ Launch ONE of each cache_key first if you want to avoid duplicate builds;
+ otherwise just fire them all, the cost is a couple of minutes each.
+==========================================================================
+
+# --- LIGHTS: input size sweep (the score lives here) ---
+# 3 tiles of the 0.30-0.90 band. A 12px light becomes 12 * imgsz/912 px.
+1-  modal run problem4/training_scripts/lights_t640/train.py            # 8.4 px light
+2-  modal run problem4/training_scripts/lights_t768/train.py            # 10.1 px light
+3-  modal run problem4/training_scripts/lights_t896/train.py            # 11.8 px light
+
+# --- LIGHTS: one-variable variants, all against lights_t768 ---
+4-  modal run problem4/training_scripts/lights_t768_p2/train.py         # stride-4 head
+5-  modal run problem4/training_scripts/lights_t768_yellow4/train.py    # yellow x4
+6-  modal run problem4/training_scripts/lights_t768_wideband/train.py   # band 0.20-0.95
+
+# --- SIGNS ---
+7-  modal run problem4/training_scripts/signs_640/train.py
+8-  modal run problem4/training_scripts/signs_640_aug/train.py
+9-  modal run problem4/training_scripts/signs_960/train.py
+
+
+==========================================================================
+ FETCH RESULTS
+==========================================================================
+
+# what an experiment produced
+modal volume ls tiny-runs lights_t768
+modal volume ls tiny-runs lights_t768/train/weights
+
+# the summary only (val mAP, per-class AP, onnx size) — small, fetch first
+modal volume get tiny-runs lights_t768/summary.json          "D:\My Projects\modeling-hackathon-stage-2\problem4\training_scripts\lights_t768\results"
+
+# everything worth keeping for one experiment
+modal volume get tiny-runs lights_t768/train/weights/best.pt "D:\My Projects\modeling-hackathon-stage-2\problem4\training_scripts\lights_t768\results\weights"
+modal volume get tiny-runs lights_t768/train/weights/best.onnx "D:\My Projects\modeling-hackathon-stage-2\problem4\training_scripts\lights_t768\results\weights"
+modal volume get tiny-runs lights_t768/train/results.csv     "D:\My Projects\modeling-hackathon-stage-2\problem4\training_scripts\lights_t768\results"
+modal volume get tiny-runs lights_t768/train/results.png     "D:\My Projects\modeling-hackathon-stage-2\problem4\training_scripts\lights_t768\results"
+
+# or the whole run dir at once (includes plots + confusion matrix + every .pt)
+modal volume get tiny-runs lights_t768 "D:\My Projects\modeling-hackathon-stage-2\problem4\training_scripts\lights_t768\results"
+
+
+==========================================================================
+ HOUSEKEEPING
+==========================================================================
+
+# list built datasets (shared across experiments by cache_key)
+modal volume ls tiny-runs _datasets
+
+# force a dataset rebuild: delete it, the next run regenerates it
+modal volume rm -r tiny-runs _datasets/lights_b30_90_t3
+
+# drop a run and start it over
+modal volume rm -r tiny-runs lights_t768
+
+# delete a whole volume (DANGER)
+# modal volume delete tiny-runs
+
+
+==========================================================================
+ MULTIPLE WORKSPACES (to run more than the concurrency cap at once)
+==========================================================================
+# Each workspace needs its own volumes + dataset upload.
+cd "D:\My Projects\modeling-hackathon-stage-2"
+$env:MODAL_CONFIG_PATH = "$HOME\.modal_session1.toml"
+modal profile list

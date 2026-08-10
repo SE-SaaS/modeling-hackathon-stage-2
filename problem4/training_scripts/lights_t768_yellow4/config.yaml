@@ -1,0 +1,14 @@
+experiment:
+  name: lights_t768_yellow4
+  notes: Yellow is 99 of 5442 light instances and a third of F1_lights. Duplicates
+    every tile containing one 4x. Same geometry as lights_t768, so the delta is purely
+    the imbalance fix.
+dataset:
+  branch: lights
+  cache_key: lights_b30_90_t3_y4
+  yellow_oversample: 4
+train:
+  model: yolo11n.pt
+  imgsz: 768
+  batch: 24
+  epochs: 150

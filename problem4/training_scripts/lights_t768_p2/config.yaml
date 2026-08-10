@@ -1,0 +1,14 @@
+experiment:
+  name: lights_t768_p2
+  notes: Stride-4 (P2) head instead of stride-8. Ultralytics has no yolo11-p2, so
+    this is yolov8n-p2, warm-started from yolov8n.pt (the P2 layers themselves start
+    random). Tests whether a finer grid beats a bigger input at equal cost.
+dataset:
+  branch: lights
+  cache_key: lights_b30_90_t3
+train:
+  model: yolov8n-p2.yaml
+  load_from: yolov8n.pt
+  imgsz: 768
+  batch: 16
+  epochs: 150

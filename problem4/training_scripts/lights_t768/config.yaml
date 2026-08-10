@@ -1,0 +1,12 @@
+experiment:
+  name: lights_t768
+  notes: Middle of the size sweep @768 -> 10.1px light. The reference the head/yellow/band
+    variants are compared against.
+dataset:
+  branch: lights
+  cache_key: lights_b30_90_t3
+train:
+  model: yolo11n.pt
+  imgsz: 768
+  batch: 24
+  epochs: 150

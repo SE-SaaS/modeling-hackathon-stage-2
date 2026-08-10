@@ -1,0 +1,12 @@
+experiment:
+  name: lights_t896
+  notes: Largest of the sweep @896 -> 11.8px light, near native. Tests whether accuracy
+    is still climbing when latency runs out.
+dataset:
+  branch: lights
+  cache_key: lights_b30_90_t3
+train:
+  model: yolo11n.pt
+  imgsz: 896
+  batch: 16
+  epochs: 150

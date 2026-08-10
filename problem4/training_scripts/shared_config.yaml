@@ -1,0 +1,82 @@
+# =============================================================================
+# shared_config.yaml — defaults for every experiment.
+# Each experiment's config.yaml is merged on top of this (experiment wins).
+# Only put things here that are genuinely shared; anything an experiment varies
+# belongs in that experiment's own config.yaml so the diff is readable.
+# =============================================================================
+
+experiment:
+  name: null                 # set by each experiment
+  notes: ""
+
+paths:
+  # Local run: point at the extracted dataset_release. On Modal this is
+  # overwritten by remote_cfg() with modal.remote_data_root.
+  data_root: "C:/Users/mamou/Downloads/too-small-to-handle/dataset_release/dataset_release"
+  dataset_cache: null        # null -> <results>/dataset ; Modal sets /runs/_datasets/<key>
+
+dataset:
+  branch: lights             # 'lights' (classes 8,9,10) or 'signs' (0..7)
+  cache_key: null            # dataset dir name on the runs volume; set per experiment
+
+  # --- lights geometry (ignored when branch: signs) -------------------------
+  # Horizontal band of the frame to keep, as a fraction of height. 0.30-0.90
+  # holds 96.0% of train / 97.8% of val light boxes and throws away sky+road.
+  # See data_code/01_dataset_analysis.txt section 6.
+  band: [0.30, 0.90]
+  n_tiles: null              # null -> round(crop_w / crop_h); 2704x912 -> 3
+  min_box_keep: 0.6          # drop a box if tiling clips away >40% of its area
+  jpg_quality: 92            # tiles are re-encoded; keep this high, lights are 12px
+
+  # Landscape frames are dashcam (lights), portrait are phone photos (signs).
+  # Holds for all 2595 labelled images. Used for dataset routing AND inference.
+  router_min_ar: 1.6
+
+  # Yellow: 99 train instances, worth 1/6 of the total score.
+  yellow_oversample: 1       # >1 duplicates every tile containing a yellow light
+
+train:
+  model: yolo11n.pt
+  imgsz: 640
+  epochs: 120
+  batch: 32
+  device: 0
+  workers: 8
+  seed: 0
+  deterministic: true
+  patience: 40
+  optimizer: auto
+  cos_lr: true
+  cache: false
+  val: true
+  plots: true
+  # Augmentation. Defaults are Ultralytics' own; experiments override.
+  mosaic: 1.0
+  close_mosaic: 15
+  scale: 0.5
+  fliplr: 0.5
+  flipud: 0.0
+  hsv_h: 0.015
+  hsv_s: 0.7
+  hsv_v: 0.4
+
+export:
+  onnx: true
+  opset: 12
+  batch: 1
+  int8: true                 # dynamic INT8 alongside FP32; validate before shipping
+
+modal:
+  gpu: "A10G"
+  cpu_cores: 8
+  memory_gb: 32
+  timeout_seconds: 14400
+  data_volume: tiny-data
+  runs_volume: tiny-runs
+  data_mount: /data
+  runs_mount: /runs
+  remote_data_root: /data/dataset_release
+
+reproducibility:
+  seed: 0
+  deterministic: true

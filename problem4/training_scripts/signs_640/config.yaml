@@ -1,0 +1,12 @@
+experiment:
+  name: signs_640
+  notes: Signs baseline. Median sign is 458px, so 640 is already generous; this exists
+    to show that more resolution is not the answer.
+dataset:
+  branch: signs
+  cache_key: signs
+train:
+  model: yolo11n.pt
+  imgsz: 640
+  batch: 16
+  epochs: 200
