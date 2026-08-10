@@ -1,0 +1,12 @@
+# Model weights are large binaries that git cannot diff and that Modal already
+# holds on the tiny-runs volume. Re-fetch any of them with:
+#     modal run problem4/training_scripts/<exp>/train.py --fetch-only
+*.pt
+*.onnx
+*.engine
+
+# Built datasets (tiles) — regenerated from dataset_release on demand.
+training_scripts/*/results/dataset/
+
+# Keep the small, reviewable artifacts: summary.json, results.csv, args.yaml,
+# and the training plots. Those are the record of what each run did.
