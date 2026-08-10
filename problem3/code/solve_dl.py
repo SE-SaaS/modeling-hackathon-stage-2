@@ -1,3 +1,5 @@
+import os
+import logging
 import pandas as pd
 import numpy as np
 import torch
@@ -15,12 +17,22 @@ def compute_metrics(eval_pred):
     return {"macro_f1": f1_score(labels, predictions, average='macro')}
 
 def run_dl():
-    print(f"CUDA Available: {torch.cuda.is_available()}")
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.info(f"CUDA Available: {torch.cuda.is_available()}")
     model_name = "CAMeL-Lab/bert-base-arabic-camelbert-da"
-    print(f"Using model: {model_name}")
+    logging.info(f"Using model: {model_name}")
 
-    train_df = pd.read_csv('train.csv')
-    test_df = pd.read_csv('test.csv')
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    train_path = os.path.join(base_dir, 'datasets', 'train.csv')
+    test_path = os.path.join(base_dir, 'datasets', 'test.csv')
+    output_path = os.path.join(base_dir, 'output', 'submission_dl.csv')
+
+    try:
+        train_df = pd.read_csv(train_path)
+        test_df = pd.read_csv(test_path)
+    except FileNotFoundError as e:
+        logging.error(f"File not found: {e}")
+        return
     
     train_df['text'] = train_df['text'].fillna('')
     test_df['text'] = test_df['text'].fillna('')
@@ -43,7 +55,7 @@ def run_dl():
     train_split = train_df.iloc[train_indices].copy()
     val_split = train_df.iloc[val_indices].copy()
     
-    print(f"Train size: {len(train_split)}, Val size (short sentences): {len(val_split)}")
+    logging.info(f"Train size: {len(train_split)}, Val size (short sentences): {len(val_split)}")
 
     def tokenize_function(examples):
         return tokenizer(examples['text'], padding="max_length", truncation=True, max_length=64)
@@ -88,21 +100,21 @@ def run_dl():
         compute_metrics=compute_metrics
     )
     
-    print("Training model...")
+    logging.info("Training model...")
     trainer.train()
     
-    print("Evaluating on validation set...")
+    logging.info("Evaluating on validation set...")
     val_results = trainer.evaluate()
-    print(f"Validation Results: {val_results}")
+    logging.info(f"Validation Results: {val_results}")
     
-    print("Predicting on test set...")
+    logging.info("Predicting on test set...")
     predictions = trainer.predict(test_dataset)
     preds = np.argmax(predictions.predictions, axis=-1)
     
-    sub = pd.read_csv('sample_submission.csv')
-    sub['dialect'] = preds
-    sub.to_csv('submission_dl.csv', index=False)
-    print("Deep learning submission saved to 'submission_dl.csv'.")
+    sub = pd.DataFrame({'id': test_df['id'], 'dialect': preds})
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    sub.to_csv(output_path, index=False)
+    logging.info(f"Deep learning submission saved to '{output_path}'.")
 
 if __name__ == "__main__":
     run_dl()
