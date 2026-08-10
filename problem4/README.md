@@ -38,6 +38,44 @@ augmentation, not resolution.
 
 ---
 
+## The models
+
+Everything is **Ultralytics YOLO11 nano**, COCO-pretrained. Two separate
+instances of it — one per branch — never a shared backbone.
+
+| Property | Lights model | Signs model |
+| --- | --- | --- |
+| Checkpoint | `yolo11n.pt` | `yolo11n.pt` |
+| Params | ~2.6 M | ~2.6 M |
+| Classes | 3 (red/yellow/green) | 8 (sign types) |
+| Input | 3 tiles @ 640–896 | 1 full frame @ 640 |
+| FP32 ONNX | ~10 MB | ~10 MB |
+| INT8 ONNX | ~3 MB | ~3 MB |
+
+Combined on disk: **~6 MB INT8 / ~20 MB FP32**, comfortably inside any
+plausible size budget. Runtime is **ONNX Runtime on CPU**, static shapes.
+
+One experiment (`lights_t768_p2`) instead uses **`yolov8n-p2.yaml`** — a YOLOv8
+nano with an extra stride-4 (P2) detection head. Ultralytics ships no
+`yolo11-p2.yaml` (verified against the installed 8.4.11 package: only
+`yolov8-p2.yaml` and `yolo26-p2.yaml` exist), so the P2 test has to be a v8. It
+is warm-started from `yolov8n.pt`, meaning the backbone transfers but the P2
+layers start random — expect it to need more epochs to be judged fairly.
+
+**Why nano and nothing larger.** The deadline is pass/fail with no partial
+credit, and the lights branch spends its budget on three forward passes per
+frame rather than one. A `yolo11s` at 3×768² would not fit. Capacity is not the
+binding constraint here — a nano has plenty for 3 and 8 classes with a few
+thousand instances. Input resolution is the constraint, so that is where the
+compute goes.
+
+**What we are not using, and why:** no RT-DETR (transformer attention is slow on
+CPU), no NanoDet/PicoDet (weaker tooling, no ONNX/export path this mature), no
+two-stage detector, no separate colour-classifier CNN yet — that stays in
+reserve for if yellow F1 comes back broken.
+
+---
+
 ## Steps, in order
 
 - [x] **1. Analyse the data** — `python problem4/data_code/01_analyze_dataset.py`
@@ -51,37 +89,41 @@ augmentation, not resolution.
 - [x] **4. Verify the tiling geometry** — round-trip test confirmed box centres
       reconstruct to 0.00 px on train; tile coverage has no gaps at any of the 7
       resolutions in the dataset.
-- [ ] **5. Upload data to Modal + launch the 9 runs** — see
+- [x] **5. Make runs self-syncing** — `modal run .../train.py` trains *and*
+      downloads its own results, including after a crash. Re-running detects
+      local + remote state and resumes instead of restarting. State machine
+      tested against a fake volume across all 5 paths.
+- [ ] **6. Upload data to Modal + launch the 9 runs** — see
       [modal_commands.txt](modal_commands.txt). All 9 are independent and run in
-      parallel.
-- [ ] **6. Pick the winners** — one lights config, one signs config, judged on
+      parallel. `python training_scripts/_fetch_all.py` gives a status table.
+- [ ] **7. Pick the winners** — one lights config, one signs config, judged on
       `competition_score()`, not on Ultralytics' mAP (which weights the two
       halves completely differently).
-- [ ] **7. Write `predict.py`** — router → crop/tile → ONNX Runtime → merge
+- [ ] **8. Write `predict.py`** — router → crop/tile → ONNX Runtime → merge
       tiles → NMS → boxes in original-image pixels. Must import
       `tile_geometry()` from `shared_code` so inference and training geometry
       cannot drift.
-- [ ] **8. Measure p95 latency on CPU** — the deadline is pass/fail, no partial
+- [ ] **9. Measure p95 latency on CPU** — the deadline is pass/fail, no partial
       credit. If it clears without INT8, ship FP32.
-- [ ] **9. INT8 quantize, re-validate** — keep it only if light F1 holds.
-- [ ] **10. Package the zip** — `predict.py`, `requirements.txt`, weights,
+- [ ] **10. INT8 quantize, re-validate** — keep it only if light F1 holds.
+- [ ] **11. Package the zip** — `predict.py`, `requirements.txt`, weights,
       `WRITEUP.md`, named `<team-slug>__<SECRET_CODE>.zip`.
 
 ---
 
 ## The experiment grid
 
-| # | Experiment | What it varies | Light px |
-|---|---|---|---|
-| 1 | `lights_t640` | imgsz 640 | 8.4 |
-| 2 | `lights_t768` | imgsz 768 — the reference | 10.1 |
-| 3 | `lights_t896` | imgsz 896 | 11.8 |
-| 4 | `lights_t768_p2` | stride-4 P2 head (yolov8n-p2) | 10.1 |
-| 5 | `lights_t768_yellow4` | yellow tiles duplicated ×4 | 10.1 |
-| 6 | `lights_t768_wideband` | band 0.20–0.95 (98% coverage) | 8.1 |
-| 7 | `signs_640` | baseline | — |
-| 8 | `signs_640_aug` | heavy augmentation | — |
-| 9 | `signs_960` | heavy aug at 960 | — |
+| # | Experiment | Model | imgsz | What it varies | Light px |
+|---|---|---|---|---|---|
+| 1 | `lights_t640` | `yolo11n.pt` | 640 | size sweep, cheapest | 8.4 |
+| 2 | `lights_t768` | `yolo11n.pt` | 768 | **the reference** | 10.1 |
+| 3 | `lights_t896` | `yolo11n.pt` | 896 | size sweep, dearest | 11.8 |
+| 4 | `lights_t768_p2` | `yolov8n-p2.yaml` ← `yolov8n.pt` | 768 | stride-4 head | 10.1 |
+| 5 | `lights_t768_yellow4` | `yolo11n.pt` | 768 | yellow tiles ×4 | 10.1 |
+| 6 | `lights_t768_wideband` | `yolo11n.pt` | 768 | band 0.20–0.95 | 8.1 |
+| 7 | `signs_640` | `yolo11n.pt` | 640 | baseline | — |
+| 8 | `signs_640_aug` | `yolo11n.pt` | 640 | heavy augmentation | — |
+| 9 | `signs_960` | `yolo11n.pt` | 960 | heavy aug + resolution | — |
 
 Experiments 4–6 each change exactly one thing against `lights_t768`, so each
 result is attributable.

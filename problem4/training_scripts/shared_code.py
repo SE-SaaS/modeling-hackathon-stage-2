@@ -374,7 +374,8 @@ def _oversample_class(split_dir: Path, cls_id: int, repeats: int) -> int:
 # =============================================================================
 # Section 3 — training + export
 # =============================================================================
-def run_experiment(cfg: dict, exp_dir, out_dir=None, persist_fn=None) -> dict:
+def run_experiment(cfg: dict, exp_dir, out_dir=None, persist_fn=None,
+                   fresh: bool = False) -> dict:
     """Build dataset -> train -> validate -> export ONNX (+ optional INT8).
 
     persist_fn is Modal's volume.commit, called at the end of each stage so a
@@ -392,20 +393,34 @@ def run_experiment(cfg: dict, exp_dir, out_dir=None, persist_fn=None) -> dict:
         persist_fn()
 
     t = dict(cfg["train"])
-    model = YOLO(t.pop("model"))
-    # A .yaml architecture (e.g. the P2 variant) starts from random weights.
-    # load_from warm-starts every layer whose shape matches a released
-    # checkpoint; the layers unique to the variant stay random.
     load_from = t.pop("load_from", None)
-    if load_from:
-        model = model.load(load_from)
-    results = model.train(
-        data=str(data_yaml),
-        project=str(out_dir),
-        name="train",
-        exist_ok=True,
-        **t,
-    )
+
+    # Resume a run the container was killed part-way through: Ultralytics picks
+    # the epoch, optimizer state and LR schedule back up from last.pt, so a
+    # crashed 150-epoch run costs only the epochs it had not reached.
+    last_pt = out_dir / "train" / "weights" / "last.pt"
+    if fresh and (out_dir / "train").exists():
+        # --force: throw the previous attempt away rather than resuming into it.
+        print(f"[train] fresh run requested, clearing {out_dir / 'train'}")
+        shutil.rmtree(out_dir / "train", ignore_errors=True)
+    if last_pt.exists() and not fresh:
+        print(f"[train] resuming from {last_pt}")
+        model = YOLO(str(last_pt))
+        results = model.train(resume=True)
+    else:
+        model = YOLO(t.pop("model"))
+        # A .yaml architecture (e.g. the P2 variant) starts from random weights.
+        # load_from warm-starts every layer whose shape matches a released
+        # checkpoint; the layers unique to the variant stay random.
+        if load_from:
+            model = model.load(load_from)
+        results = model.train(
+            data=str(data_yaml),
+            project=str(out_dir),
+            name="train",
+            exist_ok=True,
+            **t,
+        )
     if persist_fn:
         persist_fn()
 
@@ -606,6 +621,213 @@ def remote_cfg(cfg: dict) -> dict:
     rc["paths"]["dataset_cache"] = str(
         Path(m["runs_mount"]) / "_datasets" / cfg["dataset"]["cache_key"])
     return rc
+
+
+# =============================================================================
+# Section 6 — run orchestration + automatic result sync
+# =============================================================================
+# Everything here runs LOCALLY, inside @app.local_entrypoint(), so it can write
+# to the local disk. The goal is that `modal run .../train.py` is the only
+# command ever needed: it trains, then pulls the results down by itself, and it
+# does the right thing when re-run after a crash instead of starting over.
+#
+# State lives in two places and is derived, never assumed:
+#   remote : /runs/<exp>/summary.json exists      -> training finished
+#            /runs/<exp>/train/weights/last.pt    -> training started
+#   local  : <exp>/results/.sync_state.json       -> what was pulled, and when
+#
+# Re-running resolves to one of four outcomes:
+#   local complete   -> do nothing (unless --force)
+#   remote complete  -> skip training, just download
+#   remote partial   -> resume training from last.pt, then download
+#   nothing anywhere -> train from scratch, then download
+#
+# The download runs in a finally: block, so a crashed run still yields its
+# logs, partial weights and whatever plots exist. That is usually what you need
+# to work out why it crashed.
+
+# Fetched by default. Anything not matched is skipped, which keeps the per-epoch
+# checkpoints (epoch0.pt, epoch10.pt, ...) off the local disk — they are large
+# and best.pt/last.pt already cover every real use.
+_FETCH_KEEP_SUFFIXES = (".json", ".csv", ".yaml", ".txt", ".png", ".jpg", ".onnx")
+_FETCH_KEEP_NAMES = ("best.pt", "last.pt")
+
+
+def _should_fetch(rel_path: str, weights_only: bool = False) -> bool:
+    name = rel_path.rsplit("/", 1)[-1]
+    if name.endswith(".pt"):
+        # best/last only; the periodic epoch checkpoints stay remote.
+        return name in _FETCH_KEEP_NAMES
+    if name.endswith(".onnx"):
+        return True                       # a weight too — always wanted
+    if weights_only:
+        return False
+    return name.endswith(_FETCH_KEEP_SUFFIXES)
+
+
+def _is_file_entry(entry) -> bool:
+    """FileEntryType across modal versions without importing a private path."""
+    t = getattr(entry, "type", None)
+    return getattr(t, "name", str(t)).upper().endswith("FILE")
+
+
+def fetch_run(volume, exp_name: str, local_dir, weights_only: bool = False,
+              verbose: bool = True) -> dict:
+    """Download /runs/<exp_name> into local_dir. Idempotent: a file already
+    present with the same byte size is skipped, so re-running costs nothing and
+    a half-finished download resumes cleanly.
+
+    Writes to a .part file and renames, so an interrupted transfer can never
+    leave a truncated file that a later run then mistakes for complete.
+    """
+    local_dir = Path(local_dir)
+    local_dir.mkdir(parents=True, exist_ok=True)
+    got = skipped = failed = 0
+    total_bytes = 0
+
+    try:
+        entries = list(volume.listdir(exp_name, recursive=True))
+    except Exception as e:
+        if verbose:
+            print(f"[sync] nothing to fetch for {exp_name}: {e}")
+        return dict(downloaded=0, skipped=0, failed=0, bytes=0, present=False)
+
+    for entry in entries:
+        if not _is_file_entry(entry):
+            continue
+        rel = entry.path[len(exp_name):].lstrip("/")
+        if not rel or not _should_fetch(rel, weights_only):
+            continue
+
+        dst = local_dir / rel
+        size = int(getattr(entry, "size", 0) or 0)
+        if dst.exists() and size and dst.stat().st_size == size:
+            skipped += 1
+            continue
+
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        tmp = dst.with_suffix(dst.suffix + ".part")
+        try:
+            with open(tmp, "wb") as f:
+                for chunk in volume.read_file(entry.path):
+                    f.write(chunk)
+            tmp.replace(dst)
+            got += 1
+            total_bytes += dst.stat().st_size
+            if verbose:
+                print(f"[sync]   + {rel} ({dst.stat().st_size/1e6:.1f} MB)")
+        except Exception as e:
+            failed += 1
+            tmp.unlink(missing_ok=True)
+            if verbose:
+                print(f"[sync]   ! {rel}: {e}")
+
+    if verbose:
+        print(f"[sync] {exp_name}: {got} new, {skipped} current, {failed} failed "
+              f"({total_bytes/1e6:.1f} MB)")
+    return dict(downloaded=got, skipped=skipped, failed=failed,
+                bytes=total_bytes, present=True)
+
+
+def remote_status(volume, exp_name: str) -> str:
+    """'complete' | 'partial' | 'absent', read from the volume itself."""
+    try:
+        entries = list(volume.listdir(exp_name, recursive=True))
+    except Exception:
+        return "absent"
+    paths = {e.path for e in entries}
+    if any(p.endswith("summary.json") for p in paths):
+        return "complete"
+    if any(p.endswith("last.pt") for p in paths):
+        return "partial"
+    return "partial" if paths else "absent"
+
+
+def local_status(local_dir) -> str:
+    """'complete' | 'partial' | 'absent', from what is actually on disk.
+
+    Deliberately checks for the files themselves rather than trusting the state
+    file, so deleting a weight by hand correctly downgrades the status.
+    """
+    local_dir = Path(local_dir)
+    if not local_dir.exists():
+        return "absent"
+    has_summary = (local_dir / "summary.json").exists()
+    has_best = any(local_dir.rglob("best.pt"))
+    if has_summary and has_best:
+        return "complete"
+    return "partial" if any(local_dir.iterdir()) else "absent"
+
+
+def _write_state(local_dir, **kw):
+    p = Path(local_dir) / ".sync_state.json"
+    state = {}
+    if p.exists():
+        try:
+            state = json.loads(p.read_text())
+        except Exception:
+            state = {}
+    state.update(kw)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(state, indent=2))
+
+
+def orchestrate(cfg: dict, exp_name: str, local_results_dir, volume,
+                train_fn, force: bool = False, fetch_only: bool = False,
+                weights_only: bool = False) -> str:
+    """The whole `modal run` flow. Returns the outcome as a string.
+
+    train_fn is the remote handle's .remote() call, passed in so this stays
+    independent of how the caller declared its Modal function.
+    """
+    local_results_dir = Path(local_results_dir)
+    lstat = local_status(local_results_dir)
+    rstat = remote_status(volume, exp_name)
+    print(f"[run] {exp_name}: local={lstat} remote={rstat}"
+          + (" (force)" if force else ""))
+
+    if lstat == "complete" and not force and not fetch_only:
+        print(f"[run] {exp_name} already complete locally — nothing to do.")
+        print(f"[run] re-run with --force to retrain, or --fetch-only to re-pull.")
+        fetch_run(volume, exp_name, local_results_dir, weights_only)   # heal gaps
+        return "already-complete"
+
+    if fetch_only:
+        fetch_run(volume, exp_name, local_results_dir, weights_only)
+        _write_state(local_results_dir, last_action="fetch-only",
+                     remote_status=rstat)
+        return "fetched"
+
+    if rstat == "complete" and not force:
+        print(f"[run] {exp_name} finished remotely — downloading, not retraining.")
+        fetch_run(volume, exp_name, local_results_dir, weights_only)
+        _write_state(local_results_dir, last_action="fetch-remote-complete",
+                     remote_status=rstat)
+        return "fetched-remote-complete"
+
+    if rstat == "partial" and not force:
+        print(f"[run] {exp_name} has a partial remote run — resuming from last.pt.")
+
+    outcome = "trained"
+    error = None
+    try:
+        train_fn(fresh=force)
+    except Exception as e:                 # crash: still pull whatever exists
+        outcome, error = "crashed", repr(e)
+        print(f"[run] {exp_name} FAILED: {e}")
+        print(f"[run] pulling partial results anyway so the logs are local...")
+    finally:
+        # Always fetch. A crashed run's logs and last.pt are the whole point.
+        res = fetch_run(volume, exp_name, local_results_dir, weights_only)
+        _write_state(local_results_dir, last_action=outcome, error=error,
+                     remote_status=remote_status(volume, exp_name),
+                     fetched=res)
+
+    final = local_status(local_results_dir)
+    print(f"[run] {exp_name}: {outcome}, local now '{final}' -> {local_results_dir}")
+    if error:
+        print(f"[run] re-run the same command to resume from where it stopped.")
+    return outcome
 
 
 def resolve_pkg_root() -> Path:

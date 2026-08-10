@@ -23,6 +23,15 @@ experiment and hands off.
 
 Run locally:  python training_scripts/{name}/train.py
 Run on Modal: modal run training_scripts/{name}/train.py
+
+The Modal path trains AND pulls the results down to this folder's results/ dir
+by itself, including when the run crashes. Re-running is safe: it detects what
+already exists locally and remotely and resumes rather than starting over.
+
+  modal run .../train.py                  train (or resume), then download
+  modal run .../train.py --fetch-only     download only, never train
+  modal run .../train.py --force          retrain from scratch, ignore state
+  modal run .../train.py --weights-only   download only best.pt/last.pt/onnx
 """
 
 import sys
@@ -63,18 +72,32 @@ try:
                  cfg["modal"]["runs_mount"]: _runs_vol}},
         **sc.modal_resources(cfg),
     )
-    def train_remote():
+    def train_remote(fresh: bool = False):
         rcfg = sc.remote_cfg(cfg)
         out_dir = Path(cfg["modal"]["runs_mount"]) / EXP_NAME
         sc.set_seed(rcfg["reproducibility"]["seed"], rcfg["reproducibility"]["deterministic"])
         try:
-            sc.run_experiment(rcfg, EXP_DIR, out_dir=out_dir, persist_fn=_runs_vol.commit)
+            sc.run_experiment(rcfg, EXP_DIR, out_dir=out_dir,
+                              persist_fn=_runs_vol.commit, fresh=fresh)
         finally:
             _runs_vol.commit()
 
     @app.local_entrypoint()
-    def modal_main():
-        train_remote.remote()
+    def modal_main(force: bool = False, fetch_only: bool = False,
+                   weights_only: bool = False):
+        """Runs on the LOCAL machine: decides train vs resume vs just-download,
+        then syncs /runs/{name} into this folder's results/ dir. See the module
+        docstring for the flags."""
+        sc.orchestrate(
+            cfg=cfg,
+            exp_name=EXP_NAME,
+            local_results_dir=Path(__file__).resolve().parent / "results",
+            volume=_runs_vol,
+            train_fn=train_remote.remote,
+            force=force,
+            fetch_only=fetch_only,
+            weights_only=weights_only,
+        )
 
 except ImportError:
     pass
