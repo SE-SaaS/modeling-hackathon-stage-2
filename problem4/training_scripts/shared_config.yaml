@@ -41,7 +41,7 @@ train:
   epochs: 120
   batch: 32
   device: 0
-  workers: 8
+  workers: 12
   seed: 0
   deterministic: true
   patience: 40
@@ -68,9 +68,12 @@ export:
   int8: true                 # dynamic INT8 alongside FP32; validate before shipping
 
 modal:
-  gpu: "A10G"
-  cpu_cores: 8
-  memory_gb: 32
+  # A100. Note these are 2.6M-param nano models on 2099 images, so the runs are
+  # largely dataloader-bound — the CPU cores below matter at least as much as
+  # the card. Cores raised to 16 / workers to 12 to actually keep it fed.
+  gpu: "A100"
+  cpu_cores: 16
+  memory_gb: 64
   timeout_seconds: 14400
   data_volume: tiny-data
   runs_volume: tiny-runs
