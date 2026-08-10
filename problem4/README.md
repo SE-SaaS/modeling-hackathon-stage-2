@@ -104,12 +104,11 @@ reserve for if yellow F1 comes back broken.
       downloads its own results, including after a crash. Re-running detects
       local + remote state and resumes instead of restarting. State machine
       tested against a fake volume across all 5 paths.
-- [ ] **6. Upload data to Modal + launch the 13 runs** — see
+- [x] **6. Upload data to Modal + launch the 13 runs** (9/13 complete) — see
       [modal_commands.txt](modal_commands.txt). All 13 are independent and run in
       parallel. `python training_scripts/_fetch_all.py` gives a status table.
-- [ ] **7. Pick the winners** — one lights config, one signs config, judged on
-      `competition_score()`, not on Ultralytics' mAP (which weights the two
-      halves completely differently).
+- [x] **7. Pick the winners** — `lights_t768_yellow4` + `signs_640`, chosen on
+      `evaluate.py` (real objective), not on tile mAP50. Kaggle: 0.80439.
 - [ ] **8. Write `predict.py`** — router → crop/tile → ONNX Runtime → merge
       tiles → NMS → boxes in original-image pixels. Must import
       `tile_geometry()` from `shared_code` so inference and training geometry
@@ -119,6 +118,59 @@ reserve for if yellow F1 comes back broken.
 - [ ] **10. INT8 quantize, re-validate** — keep it only if light F1 holds.
 - [ ] **11. Package the zip** — `predict.py`, `requirements.txt`, weights,
       `WRITEUP.md`, named `<team-slug>__<SECRET_CODE>.zip`.
+
+---
+
+## Results so far
+
+**Kaggle practice leaderboard: 0.80439** — `lights_t768_yellow4` + `signs_640`
+at conf 0.40. (4 submissions left.)
+
+Two numbers per run. `mAP50` is Ultralytics on **tiles** at IoU 0.5 — a proxy.
+`F1_lights` is the **real objective**: full frames, centre-distance matching,
+from `evaluate.py`. They disagree, and the real one is what decides.
+
+| Lights run | mAP50 | red | yellow | green | real F1 @0.40 |
+| --- | --- | --- | --- | --- | --- |
+| **`lights_t768_yellow4`** | 0.656 | 0.684 | 0.632 | 0.652 | **0.793** ← shipped |
+| `lights_t768_yellow8` | 0.657 | 0.657 | 0.655 | 0.658 | 0.671 |
+| `lights_t896` | 0.648 | 0.699 | 0.545 | 0.700 | — |
+| `lights_t768_p2` | 0.640 | 0.649 | 0.547 | 0.724 | — |
+| `lights_t768` | 0.639 | 0.662 | 0.590 | 0.664 | — |
+| `lights_t768_wideband` | 0.632 | 0.647 | 0.597 | 0.652 | — |
+| `lights_t640` | 0.568 | 0.620 | 0.447 | 0.637 | — |
+
+| Signs run | mAP50 | mAP50-95 |
+| --- | --- | --- |
+| **`signs_640`** | **0.9730** | 0.6609 ← shipped |
+| `signs_960` | 0.9574 | 0.6487 |
+
+### What we learned
+
+1. **Resolution is the dominant lever for lights, and it saturates at 768.**
+   640→768 was +0.071 mAP50 (almost all yellow, +0.143); 768→896 only +0.010.
+   Confirms the analysis: at 640 a light is 8.4 px and its colour is gone.
+2. **Confidence threshold was worth +0.12 total score** and had never been set.
+   F1_lights runs 0.554 at conf 0.05 → 0.793 at 0.40, collapsing by 0.50. The
+   metric counts every submitted box, so low thresholds just add false alarms.
+3. **The proxy metric misleads.** `yellow8` beat `yellow4` on tile mAP50
+   (0.657 vs 0.656) but lost badly on the real metric (0.671 vs 0.793):
+   duplicating 77 yellow images 8× memorises them. Ranking on `summary.json`
+   alone would have shipped the worse model.
+4. **Signs do not need resolution.** 960 scored *below* 640 (0.957 vs 0.973) at
+   2.25× the compute. Predicted by the size analysis; now measured.
+5. **Wideband loses.** Band 0.20–0.95 buys +2% box coverage and costs 2 px of
+   light size: 0.632 vs 0.639. Not worth it.
+6. **The P2 head is not worth its cost.** Best localisation (mAP50-95 0.287)
+   and best green, but lower mAP50, +20% model size, more compute — and the
+   metric matches lights by centre distance, where finer localisation barely
+   pays. It also early-stopped at 63/90 epochs still oscillating.
+7. **Latency currently FAILS**: p95 215 ms via PyTorch against a 150 ms
+   deadline. The ONNX Runtime path is not optional.
+8. **The submission format in the rules is wrong.** Empty predictions are
+   documented as the word `none`, but the grader rejects that ("not a multiple
+   of 6") *and* rejects blanks ("contains null values"). A filler class-0 box at
+   conf 0.0001 satisfies both at no measurable cost.
 
 ---
 
