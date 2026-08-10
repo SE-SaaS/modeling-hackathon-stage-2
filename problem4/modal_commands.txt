@@ -60,21 +60,25 @@ modal volume put tiny-data "C:\Users\mamou\Downloads\too-small-to-handle\dataset
  the dataset cache, which each one rebuilds.
 ==========================================================================
 
+# Every line below is copy-paste runnable as-is.
+# Launch the 4 marked [dataset] FIRST — they each build a distinct dataset.
+# Give them ~3 min, then start the rest, which reuse those builds.
+
 # --- LIGHTS: input size sweep (the score lives here) ---
 # 3 tiles of the 0.30-0.90 band. A 12px light becomes 12 * imgsz/912 px.
-1-  modal run problem4/training_scripts/lights_t640/train.py            # 8.4 px light
-2-  modal run problem4/training_scripts/lights_t768/train.py            # 10.1 px light
-3-  modal run problem4/training_scripts/lights_t896/train.py            # 11.8 px light
+modal run problem4/training_scripts/lights_t640/train.py            # 1 | 8.4 px light  [dataset]
+modal run problem4/training_scripts/lights_t768/train.py            # 2 | 10.1 px light
+modal run problem4/training_scripts/lights_t896/train.py            # 3 | 11.8 px light
 
 # --- LIGHTS: one-variable variants, all against lights_t768 ---
-4-  modal run problem4/training_scripts/lights_t768_p2/train.py         # stride-4 head
-5-  modal run problem4/training_scripts/lights_t768_yellow4/train.py    # yellow x4
-6-  modal run problem4/training_scripts/lights_t768_wideband/train.py   # band 0.20-0.95
+modal run problem4/training_scripts/lights_t768_p2/train.py         # 4 | stride-4 head
+modal run problem4/training_scripts/lights_t768_yellow4/train.py    # 5 | yellow x4      [dataset]
+modal run problem4/training_scripts/lights_t768_wideband/train.py   # 6 | band 0.20-0.95 [dataset]
 
 # --- SIGNS ---
-7-  modal run problem4/training_scripts/signs_640/train.py
-8-  modal run problem4/training_scripts/signs_640_aug/train.py
-9-  modal run problem4/training_scripts/signs_960/train.py
+modal run problem4/training_scripts/signs_640/train.py              # 7 | baseline       [dataset]
+modal run problem4/training_scripts/signs_640_aug/train.py          # 8 | heavy aug
+modal run problem4/training_scripts/signs_960/train.py              # 9 | heavy aug @960
 
 
 ==========================================================================
