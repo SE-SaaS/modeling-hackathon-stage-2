@@ -1,0 +1,69 @@
+Overview
+Electricity demand forecasting is a fundamental task in the planning and operation of modern power systems. Power demand changes continuously over time as a result of daily activity patterns, working hours, weekends, seasonal effects, and many other factors. Because electricity generation and consumption must remain closely balanced, accurately anticipating future demand is important for reliable and efficient system operation.
+
+Reliable load forecasts can support generation scheduling, reserve planning, energy procurement, infrastructure utilization, and operational decision-making. Forecasting errors can lead to inefficient resource allocation: overestimating demand may result in unnecessary generation or operating costs, while underestimating demand may make it more difficult for operators to meet actual system requirements. As power systems become increasingly data-driven and incorporate more variable energy resources, effective forecasting methods continue to play an important role in maintaining reliability and improving operational efficiency.
+
+The challenge
+In this competition, participants are given a historical time series of hourly power demand measurements. Each observation contains a date, an hourly time interval, and the corresponding power demand in megawatts (MW).
+
+Your task is to develop a forecasting model that learns from the historical demand data and predicts the power demand for each hour in a future, unseen period.
+
+The competition is intentionally focused on the core time-series forecasting problem. Participants should identify and exploit useful temporal patterns in the historical demand series. These may include hour-of-day behavior, day-to-day dependencies, weekly cycles, longer-term patterns, trends, and relationships between recent and historical demand.
+
+A wide range of approaches can be explored, from statistical forecasting and machine-learning methods to deep-learning architectures. The objective is not to prescribe a particular modeling technique, but to evaluate how accurately each approach can generalize from historical observations to future demand.
+
+Competition objective
+For every timestamp in the test set, predict the corresponding Demand_MW value as accurately as possible.
+
+The training data cover historical observations through November 2023, while the test set represents the subsequent period in December 2023. Demand values for the test period are hidden from participants.
+
+Evaluation
+Submissions are evaluated using Mean Absolute Error (MAE):
+
+MAE measures the average absolute difference between the predicted and actual hourly demand. Lower scores indicate better forecasts.
+
+MAE is used because it is directly interpretable in the same unit as the target variable (MW) and is robust for this dataset, including observations where demand can become relatively small.
+
+Public and private leaderboard
+The hidden test observations are divided into two groups:
+
+approximately 30% are used for the public leaderboard;
+approximately 70% are used for the private leaderboard.
+The public leaderboard provides feedback during the competition. Final ranking should be based on the private leaderboard, which reduces the risk of selecting models that are overly optimized for the visible leaderboard.
+
+Submission file
+For each row in test.csv, predict one numeric Demand_MW value. The submission must contain exactly two columns:
+ID,Demand_MW
+1,95.42
+2,91.87
+3,88.31
+The ID values must match those provided in test.csv. Do not reorder, remove, or add test observations.
+
+
+Dataset Description
+The competition uses hourly power-demand observations. Only the temporal information and power-demand target are included in the prepared challenge data.
+
+train.csv
+Historical labeled observations used to develop and train forecasting models.
+
+Columns:
+
+Date — observation date in YYYY-MM-DD format.
+Hour Range — one-hour interval, for example 00:00 - 01:00.
+Demand_MW — observed power demand in megawatts.
+The prepared training set contains 40,920 observations, covering April 1, 2019 through November 30, 2023.
+
+test.csv
+Future observations for which participants must forecast power demand.
+
+Columns:
+
+ID — unique identifier for the test observation.
+Date — forecast date.
+Hour Range — forecast hourly interval.
+Demand_MW is intentionally omitted.
+
+The prepared test set contains 743 observations, covering December 1 through December 31, 2023.
+
+sample_submission.csv
+Shows the required submission structure and contains valid baseline prediction values.
