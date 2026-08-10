@@ -1,0 +1,29 @@
+Dataset Description
+Each row is one Levantine Arabic sentence. The task is to predict its dialect.
+
+Files
+train.csv — 17,696 rows: id, text, dialect
+test.csv — 7,580 rows: id, text
+sample_submission.csv — valid submission format (constant label)
+Columns
+Column	Description
+id	unique row identifier
+text	a single Levantine Arabic sentence
+dialect	target: Syrian (class 0), Lebanese (class 1), Palestinian (class 2) or Jordanian (class 3) (train only)
+Class balance
+4,421–4,426 sentences per dialect in train; 1,894–1,897 per dialect in test. Perfectly balanced by design.
+
+Preprocessing already applied
+Unicode normalised (NFKC), presentation forms mapped to standard letters, diacritics and tatweel stripped, Arabic-Indic digits converted, character elongation capped (كتييييير → كتيير).
+Exact and normalisation-equivalent duplicates removed.
+Sentences shorter than 4 words or longer than 60 words removed.
+Explicit sexual content removed.
+Named entities deleted in two passes: (a) a curated gazetteer of ~600 given names, cities, countries, nationality adjectives and organisations; (b) an Arabic NER model (CAMeL-Lab CAMeLBERT-MSA-NER) run over every high-signal token, with each hit verified in context by hand. Placeholder tokens were deleted entirely rather than replaced with a marker — a <PER> token would itself have leaked the class, since script-derived text mentions names far more often. Names that occur across all four dialects were left in place: they carry no class information, and removing them would only damage the sentence.
+Near-duplicates grouped with MinHash LSH (Jaccard ≥ 0.65); groups are kept intact within a split.
+Text is otherwise left as written, including informal spelling, missing hamza, and inconsistent ta-marbuta. Handling that variation is part of the task.
+
+Leaderboard split
+30% public / 70% private. The private set is sampled with weights favouring short sentences: median length is 8 words on private versus 16 on public. This is stated openly so you can plan for it — validate on your own short-sentence subset, not on a random split.
+
+File encoding
+All files are UTF-8 without BOM — the standard for Kaggle and for pandas.read_csv. If you double-click a file and see text like طھظپظ‡ ط¹ظ„ظٹظƒ, that is Excel guessing Windows-1256 instead of UTF-8, not corrupt data. In Excel use Data → From Text/CSV → File Origin: 65001 (UTF-8), or just open the file in VS Code or read it with pandas.
